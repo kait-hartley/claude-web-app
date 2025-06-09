@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Zap, MessageCircle, ArrowLeft, Send, Copy, CheckCircle, AlertCircle } from 'lucide-react';
+import { Zap, MessageCircle, Settings, ArrowLeft, Send, Copy, CheckCircle, AlertCircle } from 'lucide-react';
 import './App.css';
 
 function App() {
