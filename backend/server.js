@@ -14,21 +14,18 @@ const anthropic = new Anthropic({
 
 app.use(cors());
 app.use(express.json());
+app.use(cors());
+app.use(express.json());
 
-// Simple homepage
-app.get('/', (req, res) => {
-  res.send(`
-    <h1>🎉 HubSpot Marketing Idea Generator</h1>
-    <p>Your API is running successfully!</p>
-    <p><strong>Ready for your team to use!</strong></p>
-    <h3>Available API endpoints:</h3>
-    <ul>
-      <li>POST /api/generate-ideas</li>
-      <li>POST /api/refine-idea-custom</li>
-      <li>POST /api/refine-idea</li>
-    </ul>
-  `);
-});
+// Serve React app
+app.use(express.static(path.join(__dirname, '../frontend/build')));
+
+// Handle React Router (send all non-API routes to React)
+app.get('*', (req, res) => {
+  if (!req.path.startsWith('/api')) {
+    res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
+  }
+});    
 
 // Serve frontend files
 app.use(express.static(path.join(__dirname, '../frontend')));
