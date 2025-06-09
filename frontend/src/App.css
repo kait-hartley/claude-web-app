@@ -1,0 +1,19 @@
+/* Import the Lexend font */
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap');
+
+/* Basic CSS reset */
+* {
+  box-sizing: border-box;
+}
+
+/* Spin animation for loading icons */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Remove default margins and padding */
+body {
+  margin: 0;
+  padding: 0;
+}
