@@ -65,6 +65,29 @@ function App() {
     .card-hover:hover {
       box-shadow: 0 4px 12px rgba(255, 122, 89, 0.1);
     }
+@keyframes typingDots {
+  0%, 60%, 100% {
+    opacity: 0.3;
+  }
+  30% {
+    opacity: 1;
+  }
+}
+
+.typing-dots span:nth-child(1) {
+  animation: typingDots 1.4s infinite;
+  animation-delay: 0s;
+}
+
+.typing-dots span:nth-child(2) {
+  animation: typingDots 1.4s infinite;
+  animation-delay: 0.2s;
+}
+
+.typing-dots span:nth-child(3) {
+  animation: typingDots 1.4s infinite;
+  animation-delay: 0.4s;
+}Generating New Ideas
   `;
 
   const handleGenerateIdeas = async (isRetry = false) => {
@@ -423,8 +446,7 @@ margin: '0 auto 1rem auto',
               onClick={() => handleGenerateIdeas(false)}
               disabled={!userInput.trim() || isGenerating}
               style={{
-                width: '100%',
-                backgroundColor: isGenerating || !userInput.trim() ? '#cbd5e0' : '#ff7a59',
+                width: '100%',                backgroundColor: isGenerating || !userInput.trim() ? '#cbd5e0' : '#ff7a59',
                 color: 'white',
                 fontWeight: '600',
                 padding: '1.25rem 1.5rem',
@@ -452,13 +474,14 @@ margin: '0 auto 1rem auto',
             >
               {isGenerating ? (
   <>
-    <span style={{ 
-      fontSize: '22px',
-      animation: 'textBreathe 1.5s ease-in-out infinite',
-      letterSpacing: '4px'
-    }}>
-      •••
-    </span>
+    <span className="typing-dots" style={{ 
+  fontSize: '22px',
+  letterSpacing: '4px'
+}}>
+  <span>•</span>
+  <span>•</span>
+  <span>•</span>
+</span>
     Generating New Ideas...
   </>
 ) : (
