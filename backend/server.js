@@ -14,28 +14,16 @@ const anthropic = new Anthropic({
 
 app.use(cors());
 app.use(express.json());
-app.use(cors());
-app.use(express.json());
 
-// Serve React app
+// Serve React build files
 app.use(express.static(path.join(__dirname, '../frontend/build')));
 
-// Handle React Router (send all non-API routes to React)
-app.get('*', (req, res) => {
-  if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
-  }
-});    
-
-// Serve frontend files
-app.use(express.static(path.join(__dirname, '../frontend')));
-
+// Serve React app for root route
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/index.html'));
+  res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
 });
 
 // HubSpot Conversational Marketing Experiment Library Context (Based on 2024-2025 Data)
-
 
 const EXPERIMENT_LIBRARY_CONTEXT = {
   tested_patterns: {
