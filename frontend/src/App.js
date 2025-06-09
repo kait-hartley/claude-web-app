@@ -292,7 +292,8 @@ function App() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                margin: '0 auto 1rem auto'
+margin: '0 auto 1rem auto',
+                boxShadow: '0 4px 12px rgba(255, 122, 89, 0.3)'
  boxShadow: '0 4px 12px rgba(255, 122, 89, 0.3)'
               }}>
                 <MessageCircle size={28} color="white" />
