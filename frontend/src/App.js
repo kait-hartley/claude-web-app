@@ -451,22 +451,22 @@ function App() {
               }}
             >
               {isGenerating ? (
-                <>
-                  <span style={{ 
-  fontSize: '22px',
-  animation: 'textBreathe 1.5s ease-in-out infinite',
-  letterSpacing: '4px'
-}}>
-  •••
-</span>
-Generating New Ideas...
-                </>
-              ) : (
-                <>
-                  <Zap size={22} />
-                  {ideas.length > 0 ? 'Generate New Ideas' : 'Get Inspired'}
-                </>
-              )}
+  <>
+    <span style={{ 
+      fontSize: '22px',
+      animation: 'textBreathe 1.5s ease-in-out infinite',
+      letterSpacing: '4px'
+    }}>
+      •••
+    </span>
+    Generating New Ideas...
+  </>
+) : (
+  <>
+    <Zap size={22} />
+    {ideas.length > 0 ? 'Generate New Ideas' : 'Get Inspired'}
+  </>
+)}
             </button>
           </div>
         </div>
