@@ -39,10 +39,10 @@ function App() {
     
     @keyframes pulseGlow {
       0%, 100% {
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 0 35px rgba(255, 122, 89, 0.18);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 0 50px rgba(255, 122, 89, 0.25);
       }
       50% {
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 0 45px rgba(255, 122, 89, 0.28);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08), 0 0 70px rgba(255, 122, 89, 0.4);
       }
     }
     
