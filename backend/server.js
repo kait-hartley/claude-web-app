@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const Anthropic = require('@anthropic-ai/sdk');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -14,7 +15,16 @@ const anthropic = new Anthropic({
 app.use(cors());
 app.use(express.json());
 
+// Serve frontend files
+app.use(express.static(path.join(__dirname, '../frontend')));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/index.html'));
+});
+
 // HubSpot Conversational Marketing Experiment Library Context (Based on 2024-2025 Data)
+
+
 const EXPERIMENT_LIBRARY_CONTEXT = {
   tested_patterns: {
     'Demo RFF': {
