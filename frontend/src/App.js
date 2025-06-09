@@ -295,7 +295,7 @@ function App() {
                 margin: '0 auto 1rem auto'
  boxShadow: '0 4px 12px rgba(255, 122, 89, 0.3)'
               }}>
-                <Settings size={28} color="white" />
+                <MessageCircle size={28} color="white" />
               </div>
               <h1 className="text-breathe" style={{
                 fontSize: '2rem',
@@ -452,8 +452,14 @@ function App() {
             >
               {isGenerating ? (
                 <>
-                  <Settings size={22} style={{ animation: 'spin 1s linear infinite' }} />
-                  Generating New Ideas...
+                  <span style={{ 
+  fontSize: '22px',
+  animation: 'textBreathe 1.5s ease-in-out infinite',
+  letterSpacing: '4px'
+}}>
+  •••
+</span>
+Generating New Ideas...
                 </>
               ) : (
                 <>
@@ -853,8 +859,14 @@ function App() {
                         >
                           {isRefining[idea.id] ? (
                             <>
-                              <Settings size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                              Refining...
+                              <span style={{ 
+  fontSize: '16px',
+  animation: 'textBreathe 1.5s ease-in-out infinite',
+  letterSpacing: '2px'
+}}>
+  •••
+</span>
+Refining...
                             </>
                           ) : (
                             <>
