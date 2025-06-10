@@ -108,77 +108,80 @@ const styles = `
   `;
 
   const handleGenerateIdeas = async (isRetry = false) => {
-    if (!userInput.trim()) return;
-    
-    setIsGenerating(true);
-    setError(null);
-    
-   try {
-  const formData = new FormData();
-  formData.append('userInput', userInput);
-  formData.append('selectedKPI', selectedKPI);
-  formData.append('customKPI', customKPI);
+  if (!userInput.trim()) return;
   
-  // Add uploaded files to FormData
-  uploadedFiles.forEach((file, index) => {
-    formData.append('files', file);
-  });
-
+  setIsGenerating(true);
+  setError(null);
+  
   try {
-  const formData = new FormData();
-  formData.append('userInput', userInput);
-  formData.append('selectedKPI', selectedKPI);
-  formData.append('customKPI', customKPI);
-  
-  // Add uploaded files to FormData
-  uploadedFiles.forEach((file, index) => {
-    formData.append('files', file);
-  });
+    const formData = new FormData();
+    formData.append('userInput', userInput);
+    formData.append('selectedKPI', selectedKPI);
+    formData.append('customKPI', customKPI);
+    
+    // Add uploaded files to FormData
+    uploadedFiles.forEach((file, index) => {
+      formData.append('files', file);
+    });
 
-  const response = await fetch('https://claude-web-app.onrender.com/api/generate-ideas', {
-    method: 'POST',
-    body: formData, // Changed from JSON to FormData - no headers needed
-  });
-      
-      setIdeas(formattedIdeas);
-      setCurrentScreen('output');
-      setRetryCount(0);
-      
-      // Clear any existing refinement inputs when generating new ideas
-      setRefinementInputs({});
-      setIsRefining({});
-      setCopiedIdeas({});
-      
-    } catch (error) {
-      console.error('Error generating ideas:', error);
-      
-      let errorMessage = 'Failed to generate ideas. Please try again.';
-      let canRetry = true;
-      
-      if (error.message.includes('Failed to fetch')) {
-        errorMessage = 'Network connection error. Check your internet connection and make sure your backend server is running.';
-      } else if (error.message.includes('Server error: 500')) {
-        errorMessage = 'Server error occurred. This might be due to API rate limits or service issues.';
-      } else if (error.message.includes('Server error: 429')) {
-        errorMessage = 'Too many requests. Please wait a moment before trying again.';
-      } else if (error.message.includes('timeout')) {
-        errorMessage = 'Request timed out. The AI service might be busy.';
-      } else if (retryCount >= 3) {
-        errorMessage = 'Multiple attempts failed. Please check your input and try again later.';
-        canRetry = false;
-      }
-      
-      setError({ message: errorMessage, canRetry });
-      
-      if (canRetry && retryCount < 3) {
-        setRetryCount(prev => prev + 1);
-      }
-      
-    } finally {
-      setIsGenerating(false);
+    const response = await fetch('https://claude-web-app.onrender.com/api/generate-ideas', {
+      method: 'POST',
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Server error: ${response.status}`);
     }
-  };
-
+    
+    const data = await response.json();
+    
+    if (data.error) {
+      throw new Error(data.error);
+    }
+    
+    const formattedIdeas = data.ideas.map((idea, index) => ({
+      id: index + 1,
+      ...idea
+    }));
+    
+    setIdeas(formattedIdeas);
+    setCurrentScreen('output');
+    setRetryCount(0);
+    
+    // Clear any existing refinement inputs when generating new ideas
+    setRefinementInputs({});
+    setIsRefining({});
+    setCopiedIdeas({});
+    
+  } catch (error) {
+    console.error('Error generating ideas:', error);
+    
+    let errorMessage = 'Failed to generate ideas. Please try again.';
+    let canRetry = true;
+    
+    if (error.message.includes('Failed to fetch')) {
+      errorMessage = 'Network connection error. Check your internet connection and make sure your backend server is running.';
+    } else if (error.message.includes('Server error: 500')) {
+      errorMessage = 'Server error occurred. This might be due to API rate limits or service issues.';
+    } else if (error.message.includes('Server error: 429')) {
+      errorMessage = 'Too many requests. Please wait a moment before trying again.';
+    } else if (error.message.includes('timeout')) {
+      errorMessage = 'Request timed out. The AI service might be busy.';
+    } else if (retryCount >= 3) {
+      errorMessage = 'Multiple attempts failed. Please check your input and try again later.';
+      canRetry = false;
+    }
+    
+    setError({ message: errorMessage, canRetry });
+    
+    if (canRetry && retryCount < 3) {
+      setRetryCount(prev => prev + 1);
+    }
+    
+  } finally {
+    setIsGenerating(false);
+  }
+};
   const handleRefinementInputChange = (ideaId, value) => {
     setRefinementInputs(prev => ({
       ...prev,
@@ -186,104 +189,72 @@ const styles = `
     }));
   };
 
-  const refineIdeaWithCustomInput = async (ideaId) => {
-    const ideaToRefine = ideas.find(idea => idea.id === ideaId);
-    const customInput = refinementInputs[ideaId];
+   const refineIdeaWithCustomInput = async (ideaId) => {
+  const ideaToRefine = ideas.find(idea => idea.id === ideaId);
+  const customInput = refinementInputs[ideaId];
+  
+  if (!ideaToRefine || !customInput?.trim()) return;
+
+  setIsRefining(prev => ({ ...prev, [ideaId]: true }));
+  setError(null);
+
+  try {
+    const response = await fetch('https://claude-web-app.onrender.com/api/refine-idea-custom', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        idea: ideaToRefine.idea,
+        expectedResult: ideaToRefine.expectedResult,
+        customRefinement: customInput,
+        originalUserInput: userInput
+      }),
+    });
     
-    if (!ideaToRefine || !customInput?.trim()) return;
-
-    setIsRefining(prev => ({ ...prev, [ideaId]: true }));
-    setError(null);
-
-    try {
-      const response = await fetch('https://claude-web-app.onrender.com/api/refine-idea-custom', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          idea: ideaToRefine.idea,
-          expectedResult: ideaToRefine.expectedResult,
-          customRefinement: customInput,
-          originalUserInput: userInput
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
-      }
-      
-      const refinedData = await response.json();
-      
-      if (refinedData.error) {
-        throw new Error(refinedData.error);
-      }
-      
-      setIdeas(prevIdeas => 
-        prevIdeas.map(idea => 
-          idea.id === ideaId 
-            ? { ...idea, ...refinedData }
-            : idea
-        )
-      );
-      
-      // Clear the input after successful refinement
-      setRefinementInputs(prev => ({
-        ...prev,
-        [ideaId]: ''
-      }));
-      
-    } catch (error) {
-      console.error('Error refining idea:', error);
-      
-      let errorMessage = 'Failed to refine idea. Please try again.';
-      
-      if (error.message.includes('Failed to fetch')) {
-        errorMessage = 'Network connection error. Check your connection.';
-      } else if (error.message.includes('Server error: 500')) {
-        errorMessage = 'Server error occurred while refining. Please try again.';
-      } else if (error.message.includes('Server error: 429')) {
-        errorMessage = 'Too many requests. Please wait a moment.';
-      }
-      
-      setError({ message: errorMessage, canRetry: true });
-      
-    } finally {
-      setIsRefining(prev => ({ ...prev, [ideaId]: false }));
+    if (!response.ok) {
+      throw new Error(`Server error: ${response.status}`);
     }
-  };
-
-  const copyIdeaToClipboard = async (ideaId) => {
-    const idea = ideas.find(idea => idea.id === ideaId);
-    if (!idea) return;
     
-    const textToCopy = `IDEA: ${idea.idea}\n\nEXPECTED RESULT: ${idea.expectedResult}`;
+    const refinedData = await response.json();
     
-    try {
-      await navigator.clipboard.writeText(textToCopy);
-      setCopiedIdeas(prev => ({ ...prev, [ideaId]: true }));
-      
-      // Clear the copied state after 2 seconds
-      setTimeout(() => {
-        setCopiedIdeas(prev => ({ ...prev, [ideaId]: false }));
-      }, 2000);
-      
-    } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
-      // Fallback for older browsers
-      const textArea = document.createElement('textarea');
-      textArea.value = textToCopy;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      
-      setCopiedIdeas(prev => ({ ...prev, [ideaId]: true }));
-      setTimeout(() => {
-        setCopiedIdeas(prev => ({ ...prev, [ideaId]: false }));
-      }, 2000);
+    if (refinedData.error) {
+      throw new Error(refinedData.error);
     }
-  };
+    
+    setIdeas(prevIdeas => 
+      prevIdeas.map(idea => 
+        idea.id === ideaId 
+          ? { ...idea, ...refinedData }
+          : idea
+      )
+    );
+    
+    // Clear the input after successful refinement
+    setRefinementInputs(prev => ({
+      ...prev,
+      [ideaId]: ''
+    }));
+    
+  } catch (error) {
+    console.error('Error refining idea:', error);
+    
+    let errorMessage = 'Failed to refine idea. Please try again.';
+    
+    if (error.message.includes('Failed to fetch')) {
+      errorMessage = 'Network connection error. Check your connection.';
+    } else if (error.message.includes('Server error: 500')) {
+      errorMessage = 'Server error occurred while refining. Please try again.';
+    } else if (error.message.includes('Server error: 429')) {
+      errorMessage = 'Too many requests. Please wait a moment.';
+    }
+    
+    setError({ message: errorMessage, canRetry: true });
+    
+  } finally {
+    setIsRefining(prev => ({ ...prev, [ideaId]: false }));
+  }
+};
 
  const resetToInput = () => {
   setCurrentScreen('input');
@@ -440,15 +411,11 @@ margin: '0 auto 1rem auto',
         e.target.style.borderColor = '#ff7a59';
         e.target.style.boxShadow = '0 0 0 2px rgba(255, 122, 89, 0.08)';
       }}
-      onBlur={(e) => {
+   onBlur={(e) => {
         e.target.style.borderColor = '#e2e8f0';
         e.target.style.boxShadow = 'none';
       }}
     />
-  </div>
-)}
-</div>
- />
   </div>
 )}
 </div>
