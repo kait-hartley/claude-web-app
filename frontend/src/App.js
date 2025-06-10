@@ -554,27 +554,22 @@ margin: '0 auto 1rem auto',
   )}
 </div>
 <div style={{ marginBottom: '0.5rem' }}>
-  <span style={{
-    fontSize: '0.875rem',
-    fontWeight: '500',
-    color: '#64748b',
+  <label style={{
+    display: 'block',
+    fontSize: '1rem',
+    fontWeight: '600',
+    color: '#2d3748',
+    marginBottom: '0.5rem',
     fontFamily: 'Lexend, sans-serif'
   }}>
-    Try something like this:
-  </span>
+    What would you like ideas for?
+  </label>
 </div>
+
 <textarea
-                value={userInput}
-                onChange={(e) => setUserInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    if (userInput.trim() && !isGenerating) {
-                      handleGenerateIdeas(false);
-                    }
-                  }
-                }}
-                placeholder= "Try something like this: Our deflection rate has dropped and users are getting frustrated with bot responses on billing questions. We tried adding more FAQ responses but it didn't help. Need ideas to improve bot performance without increasing ISC workload."
+  value={userInput}
+  onChange={(e) => setUserInput(e.target.value)}
+  placeholder="Try something like this: Our deflection rate has dropped and users are getting frustrated with bot responses on billing questions. We tried adding more FAQ responses but it didn't help. Need ideas to improve bot performance without increasing ISC workload."
                 style={{
                   width: '100%',
                   padding: '1.25rem',
