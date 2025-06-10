@@ -36,7 +36,7 @@ const [customKPI, setCustomKPI] = useState('');
 if (!isAuthenticated) {
   const handleAuth = (e) => {
     e.preventDefault();
-    if (authInput === 'ConvMarketing2024') { // Change this password
+    if (authInput === 'testing-idea-gen-tool2025!') { // Change this password
       setIsAuthenticated(true);
     } else {
       alert('Incorrect password');
