@@ -365,6 +365,16 @@ margin: '0 auto 1rem auto',
             </div>
             
             <div style={{ marginBottom: '2rem' }}>
+  <label style={{
+    display: 'block',
+    fontSize: '1.125rem',
+    fontWeight: '600',
+    color: '#2d3748',
+    marginBottom: '0.75rem',
+    fontFamily: 'Lexend, sans-serif'
+  }}>
+    What would you like ideas for?
+  </label>
 <div style={{ marginBottom: '1.5rem' }}>
   <label style={{
     display: 'block',
@@ -564,7 +574,7 @@ margin: '0 auto 1rem auto',
                     }
                   }
                 }}
-                placeholder="Our deflection rate has dropped and users are getting frustrated with bot responses on billing questions. We tried adding more FAQ responses but it didn't help. Need ideas to improve bot performance without increasing ISC workload."
+                placeholder= "Try something like this: Our deflection rate has dropped and users are getting frustrated with bot responses on billing questions. We tried adding more FAQ responses but it didn't help. Need ideas to improve bot performance without increasing ISC workload."
                 style={{
                   width: '100%',
                   padding: '1.25rem',
