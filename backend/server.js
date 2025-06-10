@@ -2,6 +2,11 @@ const express = require('express');
 const cors = require('cors');
 const Anthropic = require('@anthropic-ai/sdk');
 const path = require('path');
+const multer = require('multer');
+const XLSX = require('xlsx');
+const pdfParse = require('pdf-parse');
+const mammoth = require('mammoth');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
@@ -11,6 +16,9 @@ const port = process.env.PORT || 3002;
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
+
+// Setup file upload handling
+const upload = multer({ dest: 'uploads/' });
 
 app.use(cors());
 app.use(express.json());
@@ -89,14 +97,174 @@ const EXPERIMENT_LIBRARY_CONTEXT = {
   ]
 };
 
-// Enhanced idea generation with experiment library context
-app.post('/api/generate-ideas', async (req, res) => {
-  try {
-    const { userInput } = req.body;
-    
-    const prompt = `You are the lead conversational marketing strategist at HubSpot with deep knowledge of the team's 116+ experiment library from 2024-2025. Generate 10 NEVER-TESTED but strategically related experiment ideas.
+// File processing function
+async function analyzeUploadedFiles(files) {
+  const analysis = {
+    previousExperiments: [],
+    currentMetrics: {},
+    identifiedProblems: [],
+    userContext: "",
+    alreadyTested: []
+  };
 
-USER INPUT: "${userInput}"
+  for (const file of files) {
+    let content = "";
+    
+    try {
+      if (file.mimetype.includes('sheet') || file.originalname.includes('.xlsx') || file.originalname.includes('.xls')) {
+        const workbook = XLSX.readFile(file.path);
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        content = XLSX.utils.sheet_to_csv(worksheet);
+        
+        // Extract experiment data specifically
+        const rows = content.split('\n');
+        rows.forEach(row => {
+          if (row.toLowerCase().includes('experiment') || row.toLowerCase().includes('test')) {
+            analysis.previousExperiments.push(row);
+          }
+          if (row.toLowerCase().includes('failed') || row.toLowerCase().includes('didn\'t work') || row.toLowerCase().includes('no impact')) {
+            analysis.alreadyTested.push(row);
+          }
+        });
+      }
+      
+      if (file.mimetype.includes('pdf')) {
+        const buffer = fs.readFileSync(file.path);
+        const data = await pdfParse(buffer);
+        content = data.text;
+      }
+      
+      if (file.mimetype.includes('document')) {
+        const result = await mammoth.extractRawText({path: file.path});
+        content = result.value;
+      }
+      
+      if (file.mimetype.includes('text') || file.originalname.includes('.txt') || file.originalname.includes('.csv')) {
+        content = fs.readFileSync(file.path, 'utf8');
+      }
+      
+      analysis.userContext += content + "\n\n";
+      
+      // Clean up uploaded file
+      fs.unlinkSync(file.path);
+      
+    } catch (error) {
+      console.error('Error processing file:', file.originalname, error);
+    }
+  }
+  
+  return analysis;
+}
+
+javascript// KPI Context Definitions
+const KPI_CONTEXT = {
+  engagement_rate: {
+    definition: "Bot Engagement divided by Page Views - measures how many visitors actually start interacting with the chatbot",
+    chatbotFocus: "Improve conversation triggers, opening messages, and initial user experience to get more visitors engaging",
+    successMetrics: ["higher click-through on bot prompts", "increased conversation starts", "reduced bounce rate on chat pages"]
+  },
+  deflection_rate: {
+    definition: "Bot Handled chats divided by Bot engagements - measures bot's ability to resolve issues without human handoff", 
+    chatbotFocus: "Enhance bot knowledge base, improve response accuracy, add better self-service flows",
+    successMetrics: ["fewer ISC handoffs", "higher bot completion rates", "maintained or improved user satisfaction"]
+  },
+  handoff_rate: {
+    definition: "ISC Handled Chats divided by Bot Engagements - measures when bot transfers to human agents",
+    chatbotFocus: "Optimize handoff triggers, improve bot capability before transfer, reduce unnecessary escalations",
+    successMetrics: ["more qualified handoffs", "reduced ISC workload", "better handoff context"]
+  },
+  chat_iql: {
+    definition: "Inbound Qualified Leads via Chat - measures lead generation through chat interactions",
+    chatbotFocus: "Improve lead qualification flows, optimize conversation paths to capture high-intent prospects",
+    successMetrics: ["higher lead qualification rates", "better lead quality scores", "increased pipeline contribution"]
+  },
+  pass_rate: {
+    definition: "IQLs divided by Handled Chats - measures quality of leads passed from chat to sales",
+    chatbotFocus: "Enhance qualification criteria, improve ISC training, optimize handoff processes",
+    successMetrics: ["higher sales acceptance rates", "improved lead-to-opportunity conversion", "reduced sales friction"]
+  },
+  isc_iqls: {
+    definition: "Number of handled chats forwarded to sales by ISC - measures ISC efficiency in lead qualification",
+    chatbotFocus: "Support ISC with better qualification tools, conversation intelligence, and routing optimization",
+    successMetrics: ["more qualified leads passed", "improved ISC productivity", "better sales outcomes"]
+  },
+  csat: {
+    definition: "Customer Satisfaction scores for chat interactions - measures user experience quality",
+    chatbotFocus: "Improve conversation quality, response accuracy, and overall user experience in chat",
+    successMetrics: ["higher satisfaction ratings", "reduced negative feedback", "improved user retention"]
+  },
+  mrr: {
+    definition: "Monthly Recurring Revenue impact from chat interactions - measures revenue attribution",
+    chatbotFocus: "Optimize conversion paths, improve upsell/cross-sell opportunities, enhance customer journey",
+    successMetrics: ["increased revenue attribution", "higher conversion rates", "improved customer lifetime value"]
+  },
+  bamic: {
+    definition: "Book a Meeting in Chat - measures meeting booking conversions through chat interface",
+    chatbotFocus: "Streamline booking flows, reduce friction in scheduling, improve meeting qualification",
+    successMetrics: ["higher meeting booking rates", "reduced booking abandonment", "improved meeting show rates"]
+  },
+  genai_ql: {
+    definition: "AI-generated Qualified Leads based on propensity scoring without human involvement",
+    chatbotFocus: "Enhance AI qualification algorithms, improve automated lead scoring, optimize self-service qualification",
+    successMetrics: ["higher AI qualification accuracy", "reduced human involvement", "maintained lead quality"]
+  },
+  demo_rff: {
+    definition: "Demo booking with reduced form fields - measures simplified demo request conversion",
+    chatbotFocus: "Optimize demo request flows, reduce form friction, improve demo qualification processes",
+    successMetrics: ["higher demo request completion", "reduced form abandonment", "improved demo show rates"]
+  }
+};
+
+// Enhanced idea generation with KPI and file context
+app.post('/api/generate-ideas', upload.array('files'), async (req, res) => {
+  try {
+    const { userInput, selectedKPI, customKPI } = req.body;
+    const files = req.files || [];
+    
+    // Analyze uploaded files
+    const fileAnalysis = await analyzeUploadedFiles(files);
+    
+    // Get KPI-specific context
+    const kpiInfo = selectedKPI ? KPI_CONTEXT[selectedKPI] : null;
+    
+    let enhancedPrompt = `You are the lead conversational marketing strategist at HubSpot with deep knowledge of the team's 116+ experiment library from 2024-2025. Generate 10 NEVER-TESTED but strategically related experiment ideas.
+
+USER INPUT: "${userInput}"`;
+
+    // Add KPI-specific context if selected
+    if (kpiInfo) {
+      enhancedPrompt += `
+
+TARGET KPI: ${kpiInfo.definition}
+KPI FOCUS: ${kpiInfo.chatbotFocus}
+SUCCESS METRICS: ${kpiInfo.successMetrics.join(', ')}
+
+CRITICAL: Every idea must be specifically designed to improve ${selectedKPI} through chatbot/conversation interface optimization.`;
+    }
+
+    // Handle custom KPI
+    if (selectedKPI === 'other' && customKPI) {
+      enhancedPrompt += `
+
+CUSTOM TARGET KPI: ${customKPI}
+Use the uploaded files to understand what this KPI means and how to improve it through chatbot optimization.`;
+    }
+
+    // Add file analysis context if files were uploaded
+    if (fileAnalysis.userContext.trim()) {
+      enhancedPrompt += `
+
+UPLOADED FILE CONTEXT:
+${fileAnalysis.userContext}
+
+NEVER SUGGEST these already-tested approaches:
+${fileAnalysis.alreadyTested.join('\n')}
+
+Use the uploaded context to make ideas highly specific to the user's situation and avoid previously tested approaches.`;
+    }
+
+    enhancedPrompt += `
 
 STEP 1 - COMPREHENSIVE INPUT ANALYSIS:
 Systematically extract EVERY element from their input:
@@ -117,63 +285,12 @@ Each idea MUST directly address specific parts of their input:
 - Reference their specific page types, audiences, metrics
 - Address their stated constraints or requirements
 - Build on their mentioned challenges or goals
-- If they mention "enterprise prospects" - every idea should reference enterprise specifically
-- If they mention "pricing pages" - ideas should be pricing-page focused
-- If they mention specific metrics - ideas should target those exact metrics
 
-STEP 3 - COMPREHENSIVE COVERAGE:
-Ensure ideas collectively address ALL aspects of their input:
-- Don't ignore any part of what they wrote
-- If they mention multiple elements, distribute coverage across ideas
-- Each idea should feel custom-written for their exact situation
-- Ideas should reference different combinations of their input elements
-
-EXPERIMENT LIBRARY CONTEXT:
-Your team has extensively tested:
-- Demo RFF optimization (3 experiments): 38-625% Demo CVR improvements
-- Salesbot Deflection (29 experiments): 6-35% deflection rate improvements  
-- Pass Rate optimization (16 experiments): 12-85% pass rate improvements
-- Engagement Rate experiments (10 experiments): 8-120% engagement improvements
-- BAMIC implementations (3 experiments): 15-45% meeting booking improvements
-- Multi-language rollouts (8 experiments): 10-75% localized improvements
-- GenAI integrations across TOFU/BOFU pages
-- Quick Reply optimizations for knowledge base and academy
-- Propensity scoring for ISC routing
-- Progressive qualification workflows
-
-STEP 4 - ADAPTIVE RESPONSE STRATEGY:
-
-IF INPUT IS VAGUE (like "improve chat" or "boost conversions"):
-- Extract implied context (industry: SaaS, audience: prospects, likely pages: pricing/demo)
-- Generate ideas that educate them on specific strategic possibilities
-- Use HubSpot-specific terminology to add context they didn't provide
-- Each idea should reference different specific scenarios within their vague goal
-
-IF INPUT IS MODERATELY SPECIFIC (mentions some context):
-- Extract and amplify EVERY detail they provided
-- Use their exact words multiple times across ideas
-- Add complementary context that builds on what they mentioned
-- Ensure each idea feels semi-custom to their stated situation
-
-IF INPUT IS HIGHLY SPECIFIC (detailed context, constraints, metrics):
-- Use EVERY element they provided in multiple ideas
-- Reference their exact language, pages, audiences, metrics extensively
-- Build variations that address different aspects of their specific situation
-- Each idea should feel like a custom strategy written specifically for them
-
-EXAMPLES OF HYPER-RELEVANT TARGETING:
-
-If user says "improve demo bookings for enterprise prospects on pricing pages":
-✅ GOOD: "Deploy lead scoring-triggered chat sequences that identify enterprise visitors on pricing pages and offer personalized demo booking with dedicated AE routing"
-❌ BAD: "Use chatbots to help with demo scheduling" (ignores enterprise, pricing pages, personalization needs)
-
-If user says "reduce support tickets while maintaining CSAT":
-✅ GOOD: "Implement progressive GenAI deflection on knowledge base pages that escalates to live agents when satisfaction signals drop below threshold"
-❌ BAD: "Add FAQ chatbot" (ignores CSAT requirement and deflection context)
-
-If user says "multi-language chat for European prospects":
-✅ GOOD: "Create localized chat workflows for DE/FR/ES markets with region-specific lead routing and culturally-adapted conversation flows"
-❌ BAD: "Translate chat messages" (ignores routing, cultural adaptation, specific regions)
+ALL IDEAS MUST BE CHATBOT/CONVERSATION SPECIFIC:
+- Focus on chat flows, bot responses, conversation logic
+- NOT website changes, mobile apps, or email campaigns
+- Specifically about improving chat/bot interactions
+- Implementable through conversational interfaces
 
 UNIVERSAL REQUIREMENTS FOR ALL IDEAS:
 
@@ -183,25 +300,9 @@ UNIVERSAL REQUIREMENTS FOR ALL IDEAS:
 
 3. CONCISE CONSISTENCY: Each idea should target ~40 words with natural variation (35-45 words) while staying focused and specific
 
-4. DIRECT INPUT INTEGRATION: Use their exact words, reference their specific context, and make every idea feel custom-tailored to their request
+4. CHATBOT-ONLY FOCUS: All ideas must be implementable through chat/bot interfaces, not other channels
 
-6. COMPREHENSIVE COVERAGE: Collectively address every aspect of their input across the 10 ideas
-
-VALIDATION CHECK FOR EACH IDEA:
-Before finalizing each idea, verify:
-- Does it use their exact terminology and context?
-- Does it address specific elements from their input?
-- Would they recognize this as directly relevant to their request?
-- Does it feel custom-written for their exact situation?
-- Have I ignored any part of what they asked for?
-
-IDEA GENERATION APPROACH:
-- Parse their input for EVERY detail and use those details extensively
-- Generate ideas that reference specific combinations of their input elements
-- Use their exact terminology and phrasing throughout
-- Make each idea feel like a direct response to their specific situation
-- Ensure no aspect of their input is ignored or overlooked
-- Natural length variation targeting ~40 words (35-45 word range) while staying hyper-relevant
+5. COMPREHENSIVE COVERAGE: Collectively address every aspect of their input across the 10 ideas
 
 EXPECTED RESULTS CALIBRATION:
 Base estimates on actual experiment library data:
@@ -217,13 +318,13 @@ JSON format:
 {
   "ideas": [
     {
-      "idea": "[~40 words directly addressing specific elements from their input, using their exact terminology and context, feeling custom-written for their situation]",
+      "idea": "[~40 words directly addressing specific elements from their input, using their exact terminology and context, feeling custom-written for their situation, focusing on chatbot implementation]",
       "expectedResult": "[X-Y%] improvement in [specific metric they mentioned or implied] based on [related experiment pattern], requiring [key success factor relevant to their context]"
     }
   ]
 }
 
-Generate ideas that feel like they were created by someone who carefully analyzed every word of their input and created custom solutions for their exact needs.`;
+Generate ideas that feel like they were created by someone who carefully analyzed every word of their input and created custom chatbot solutions for their exact needs.`;
 
     const response = await anthropic.messages.create({
       model: 'claude-3-5-sonnet-20241022',
@@ -232,10 +333,38 @@ Generate ideas that feel like they were created by someone who carefully analyze
       messages: [
         {
           role: 'user',
-          content: prompt
+          content: enhancedPrompt
         }
       ]
     });
+
+    const content = response.content[0].text;
+    let ideas;
+    
+    try {
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        ideas = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('No JSON found in response');
+      }
+    } catch (parseError) {
+      console.error('JSON parsing error:', parseError);
+      console.error('Raw response:', content);
+      ideas = { 
+        ideas: [{ 
+          idea: "Error parsing AI response - please provide more specific conversational marketing context and try again.", 
+          expectedResult: "Unable to generate experiment recommendations without clear input context" 
+        }] 
+      };
+    }
+
+    res.json(ideas);
+  } catch (error) {
+    console.error('Error generating ideas:', error);
+    res.status(500).json({ error: 'Failed to generate experiment ideas' });
+  }
+});
 
     const content = response.content[0].text;
     let ideas;
