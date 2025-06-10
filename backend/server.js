@@ -157,7 +157,7 @@ async function analyzeUploadedFiles(files) {
   return analysis;
 }
 
-javascript// KPI Context Definitions
+// KPI Context Definitions
 const KPI_CONTEXT = {
   engagement_rate: {
     definition: "Bot Engagement divided by Page Views - measures how many visitors actually start interacting with the chatbot",
