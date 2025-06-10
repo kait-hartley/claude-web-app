@@ -255,8 +255,39 @@ const styles = `
     setIsRefining(prev => ({ ...prev, [ideaId]: false }));
   }
 };
+const copyIdeaToClipboard = async (ideaId) => {
+  const idea = ideas.find(idea => idea.id === ideaId);
+  if (!idea) return;
+  
+  const textToCopy = `IDEA: ${idea.idea}\n\nEXPECTED RESULT: ${idea.expectedResult}`;
+  
+  try {
+    await navigator.clipboard.writeText(textToCopy);
+    setCopiedIdeas(prev => ({ ...prev, [ideaId]: true }));
+    
+    // Clear the copied state after 2 seconds
+    setTimeout(() => {
+      setCopiedIdeas(prev => ({ ...prev, [ideaId]: false }));
+    }, 2000);
+    
+  } catch (error) {
+    console.error('Failed to copy to clipboard:', error);
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea');
+    textArea.value = textToCopy;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+    
+    setCopiedIdeas(prev => ({ ...prev, [ideaId]: true }));
+    setTimeout(() => {
+      setCopiedIdeas(prev => ({ ...prev, [ideaId]: false }));
+    }, 2000);
+  }
+};
 
- const resetToInput = () => {
+const resetToInput = () => {
   setCurrentScreen('input');
   setUserInput('');
   setIdeas([]);
