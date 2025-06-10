@@ -5,7 +5,7 @@ import './App.css';
 function App() {
  
 // Auth state - ADD THESE FIRST
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [authInput, setAuthInput] = useState('');
   
   // App state - ADD THIS TOO (you had this before)
