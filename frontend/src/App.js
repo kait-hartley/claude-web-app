@@ -12,9 +12,24 @@ function App() {
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const [copiedIdeas, setCopiedIdeas] = useState({});
+const [selectedKPI, setSelectedKPI] = useState('');
+const [uploadedFiles, setUploadedFiles] = useState([]);
 
   // Add CSS animations as a style tag
-  const styles = `
+  const KPI_OPTIONS = [
+  { value: 'engagement_rate', label: 'Engagement Rate (Bot Engagement/Page Views)' },
+  { value: 'handoff_rate', label: 'Hand-off Rate (ISC Handled/Bot Engagements)' },
+  { value: 'deflection_rate', label: 'Deflection Rate (Bot Handled/Bot Engagements)' },
+  { value: 'chat_iql', label: 'Chat IQL (Inbound Qualified Leads via Chat)' },
+  { value: 'pass_rate', label: 'Pass Rate (IQLs/Handled Chats)' },
+  { value: 'isc_iqls', label: 'ISC IQLs (Handled chats forwarded to sales)' },
+  { value: 'csat', label: 'CSAT (Customer Satisfaction)' },
+  { value: 'mrr', label: 'MRR (Monthly Recurring Revenue)' },
+  { value: 'bamic', label: 'BAMIC (Book a Meeting in Chat)' },
+  { value: 'genai_ql', label: 'GenAI QL (AI-generated qualified leads)' },
+  { value: 'demo_rff', label: 'Demo RFF (Demo booking with reduced form)' }
+];
+const styles = `
     @keyframes fadeInUp {
       from {
         opacity: 0;
@@ -350,6 +365,124 @@ margin: '0 auto 1rem auto',
               }}>
                 What would you like ideas for?
               </label>
+<div style={{ marginBottom: '1.5rem' }}>
+  <label style={{
+    display: 'block',
+    fontSize: '1rem',
+    fontWeight: '600',
+    color: '#2d3748',
+    marginBottom: '0.5rem',
+    fontFamily: 'Lexend, sans-serif'
+  }}>
+    Which KPI would you like to improve?
+  </label>
+  <select 
+    value={selectedKPI} 
+    onChange={(e) => setSelectedKPI(e.target.value)}
+    style={{
+      width: '100%',
+      padding: '1rem',
+      border: '2px solid #e2e8f0',
+      borderRadius: '8px',
+      fontSize: '1rem',
+      color: '#2d3748',
+      outline: 'none',
+      boxSizing: 'border-box',
+      fontFamily: 'Lexend, sans-serif',
+      backgroundColor: 'white',
+      transition: 'all 0.3s ease'
+    }}
+    onFocus={(e) => {
+      e.target.style.borderColor = '#ff7a59';
+      e.target.style.boxShadow = '0 0 0 2px rgba(255, 122, 89, 0.08)';
+    }}
+    onBlur={(e) => {
+      e.target.style.borderColor = '#e2e8f0';
+      e.target.style.boxShadow = 'none';
+    }}
+  >
+    <option value="">Select a KPI (optional)</option>
+    {KPI_OPTIONS.map(kpi => (
+      <option key={kpi.value} value={kpi.value}>
+        {kpi.label}
+      </option>
+    ))}
+  </select>
+</div>
+{/* ADD ALL THIS FILE UPLOAD CODE HERE */}
+<div style={{ marginBottom: '1.5rem' }}>
+  <label style={{
+    display: 'block',
+    fontSize: '1rem',
+    fontWeight: '600',
+    color: '#2d3748',
+    marginBottom: '0.5rem',
+    fontFamily: 'Lexend, sans-serif'
+  }}>
+    Upload experiment docs/sheets (optional)
+  </label>
+  <input 
+    type="file" 
+    multiple 
+    accept=".xlsx,.xls,.csv,.pdf,.docx,.txt"
+    onChange={(e) => {
+      const files = Array.from(e.target.files);
+      setUploadedFiles(prev => [...prev, ...files]);
+    }}
+    style={{
+      width: '100%',
+      padding: '0.75rem',
+      border: '2px solid #e2e8f0',
+      borderRadius: '8px',
+      fontSize: '0.875rem',
+      color: '#2d3748',
+      outline: 'none',
+      boxSizing: 'border-box',
+      fontFamily: 'Lexend, sans-serif',
+      backgroundColor: 'white',
+      transition: 'all 0.3s ease'
+    }}
+  />
+  {uploadedFiles.length > 0 && (
+    <div style={{ marginTop: '0.75rem' }}>
+      {uploadedFiles.map((file, index) => (
+        <div key={index} style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          backgroundColor: '#f8fafc',
+          padding: '0.5rem 0.75rem',
+          borderRadius: '4px',
+          marginBottom: '0.5rem',
+          border: '1px solid #e2e8f0'
+        }}>
+          <span style={{
+            fontSize: '0.875rem',
+            color: '#475569',
+            fontFamily: 'Lexend, sans-serif'
+          }}>
+            {file.name}
+          </span>
+          <button
+            onClick={() => setUploadedFiles(prev => prev.filter((_, i) => i !== index))}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#dc2626',
+              cursor: 'pointer',
+              fontSize: '0.75rem',
+              fontFamily: 'Lexend, sans-serif',
+              padding: '0.25rem 0.5rem'
+            }}
+          >
+            Remove
+          </button>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
+{/* END OF FILE UPLOAD CODE */}
               <textarea
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
@@ -361,7 +494,7 @@ margin: '0 auto 1rem auto',
                     }
                   }
                 }}
-                placeholder="What would you like to improve? e.g., increase chat conversions, boost bot deflection, improve demo bookings..."
+                placeholder="Our deflection rate dropped from 68% to 52% this month - users are getting frustrated with bot responses on billing questions and requesting ISC help more often. We tried adding more FAQ responses but it didn't help. Need ideas to get deflection rate back above 65% while keeping CSAT scores up. ISCs are overwhelmed with simple questions the bot should handle."
                 style={{
                   width: '100%',
                   padding: '1.25rem',
