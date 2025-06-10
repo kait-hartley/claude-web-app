@@ -365,16 +365,6 @@ margin: '0 auto 1rem auto',
             </div>
             
             <div style={{ marginBottom: '2rem' }}>
-              <label style={{
-                display: 'block',
-                fontSize: '1.125rem',
-                fontWeight: '600',
-                color: '#2d3748',
-                marginBottom: '0.75rem',
-                fontFamily: 'Lexend, sans-serif'
-              }}>
-                What would you like ideas for?
-              </label>
 <div style={{ marginBottom: '1.5rem' }}>
   <label style={{
     display: 'block',
