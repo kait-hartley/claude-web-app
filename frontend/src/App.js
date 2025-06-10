@@ -14,20 +14,22 @@ function App() {
   const [copiedIdeas, setCopiedIdeas] = useState({});
 const [selectedKPI, setSelectedKPI] = useState('');
 const [uploadedFiles, setUploadedFiles] = useState([]);
+const [customKPI, setCustomKPI] = useState('');
 
   // Add CSS animations as a style tag
   const KPI_OPTIONS = [
-  { value: 'engagement_rate', label: 'Engagement Rate (Bot Engagement/Page Views)' },
-  { value: 'handoff_rate', label: 'Hand-off Rate (ISC Handled/Bot Engagements)' },
-  { value: 'deflection_rate', label: 'Deflection Rate (Bot Handled/Bot Engagements)' },
-  { value: 'chat_iql', label: 'Chat IQL (Inbound Qualified Leads via Chat)' },
-  { value: 'pass_rate', label: 'Pass Rate (IQLs/Handled Chats)' },
-  { value: 'isc_iqls', label: 'ISC IQLs (Handled chats forwarded to sales)' },
-  { value: 'csat', label: 'CSAT (Customer Satisfaction)' },
-  { value: 'mrr', label: 'MRR (Monthly Recurring Revenue)' },
-  { value: 'bamic', label: 'BAMIC (Book a Meeting in Chat)' },
-  { value: 'genai_ql', label: 'GenAI QL (AI-generated qualified leads)' },
-  { value: 'demo_rff', label: 'Demo RFF (Demo booking with reduced form)' }
+  { value: 'engagement_rate', label: 'Engagement Rate' },
+  { value: 'handoff_rate', label: 'Hand-off Rate' },
+  { value: 'deflection_rate', label: 'Deflection Rate' },
+  { value: 'chat_iql', label: 'Chat IQL' },
+  { value: 'pass_rate', label: 'Pass Rate' },
+  { value: 'isc_iqls', label: 'ISC IQLs' },
+  { value: 'csat', label: 'CSAT' },
+  { value: 'mrr', label: 'MRR' },
+  { value: 'bamic', label: 'BAMIC' },
+  { value: 'genai_ql', label: 'GenAI QL' },
+  { value: 'demo_rff', label: 'Demo RFF' },
+  { value: 'other', label: 'Other (specify below)' }
 ];
 const styles = `
     @keyframes fadeInUp {
@@ -111,29 +113,32 @@ const styles = `
     setIsGenerating(true);
     setError(null);
     
-    try {
-      const response = await fetch('https://claude-web-app.onrender.com/api/generate-ideas', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ userInput }),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      
-      const formattedIdeas = data.ideas.map((idea, index) => ({
-        id: index + 1,
-        ...idea
-      }));
+   try {
+  const formData = new FormData();
+  formData.append('userInput', userInput);
+  formData.append('selectedKPI', selectedKPI);
+  formData.append('customKPI', customKPI);
+  
+  // Add uploaded files to FormData
+  uploadedFiles.forEach((file, index) => {
+    formData.append('files', file);
+  });
+
+  try {
+  const formData = new FormData();
+  formData.append('userInput', userInput);
+  formData.append('selectedKPI', selectedKPI);
+  formData.append('customKPI', customKPI);
+  
+  // Add uploaded files to FormData
+  uploadedFiles.forEach((file, index) => {
+    formData.append('files', file);
+  });
+
+  const response = await fetch('https://claude-web-app.onrender.com/api/generate-ideas', {
+    method: 'POST',
+    body: formData, // Changed from JSON to FormData - no headers needed
+  });
       
       setIdeas(formattedIdeas);
       setCurrentScreen('output');
@@ -280,16 +285,19 @@ const styles = `
     }
   };
 
-  const resetToInput = () => {
-    setCurrentScreen('input');
-    setUserInput('');
-    setIdeas([]);
-    setRefinementInputs({});
-    setIsRefining({});
-    setError(null);
-    setRetryCount(0);
-    setCopiedIdeas({});
-  };
+ const resetToInput = () => {
+  setCurrentScreen('input');
+  setUserInput('');
+  setIdeas([]);
+  setRefinementInputs({});
+  setIsRefining({});
+  setError(null);
+  setRetryCount(0);
+  setCopiedIdeas({});
+  setSelectedKPI('');
+  setUploadedFiles([]);
+  setCustomKPI('');
+};
 
   const editPrompt = () => {
     setCurrentScreen('input');
@@ -407,9 +415,45 @@ margin: '0 auto 1rem auto',
         {kpi.label}
       </option>
     ))}
-  </select>
+</select>
+{selectedKPI === 'other' && (
+  <div style={{ marginTop: '0.75rem' }}>
+    <input
+      type="text"
+      placeholder="Enter your custom KPI (e.g., Lead Response Time, Bot Accuracy Rate, etc.)"
+      value={customKPI}
+      onChange={(e) => setCustomKPI(e.target.value)}
+      style={{
+        width: '100%',
+        padding: '0.75rem',
+        border: '2px solid #e2e8f0',
+        borderRadius: '6px',
+        fontSize: '0.875rem',
+        color: '#2d3748',
+        outline: 'none',
+        boxSizing: 'border-box',
+        fontFamily: 'Lexend, sans-serif',
+        backgroundColor: 'white',
+        transition: 'all 0.3s ease'
+      }}
+      onFocus={(e) => {
+        e.target.style.borderColor = '#ff7a59';
+        e.target.style.boxShadow = '0 0 0 2px rgba(255, 122, 89, 0.08)';
+      }}
+      onBlur={(e) => {
+        e.target.style.borderColor = '#e2e8f0';
+        e.target.style.boxShadow = 'none';
+      }}
+    />
+  </div>
+)}
 </div>
-{/* ADD ALL THIS FILE UPLOAD CODE HERE */}
+ />
+  </div>
+)}
+</div>
+
+{/* ADD FILE UPLOAD SECTION HERE */}
 <div style={{ marginBottom: '1.5rem' }}>
   <label style={{
     display: 'block',
@@ -421,28 +465,57 @@ margin: '0 auto 1rem auto',
   }}>
     Upload experiment docs/sheets (optional)
   </label>
-  <input 
-    type="file" 
-    multiple 
-    accept=".xlsx,.xls,.csv,.pdf,.docx,.txt"
-    onChange={(e) => {
-      const files = Array.from(e.target.files);
-      setUploadedFiles(prev => [...prev, ...files]);
-    }}
-    style={{
-      width: '100%',
-      padding: '0.75rem',
-      border: '2px solid #e2e8f0',
-      borderRadius: '8px',
-      fontSize: '0.875rem',
-      color: '#2d3748',
-      outline: 'none',
-      boxSizing: 'border-box',
-      fontFamily: 'Lexend, sans-serif',
-      backgroundColor: 'white',
-      transition: 'all 0.3s ease'
-    }}
-  />
+  <div style={{
+    width: '100%',
+    padding: '1rem',
+    border: '2px dashed #cbd5e0',
+    borderRadius: '8px',
+    backgroundColor: '#f8fafc',
+    textAlign: 'center',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    position: 'relative'
+  }}
+  onMouseOver={(e) => {
+    e.target.style.borderColor = '#ff7a59';
+    e.target.style.backgroundColor = '#fff8f6';
+  }}
+  onMouseOut={(e) => {
+    e.target.style.borderColor = '#cbd5e0';
+    e.target.style.backgroundColor = '#f8fafc';
+  }}
+  >
+    <input 
+      type="file" 
+      multiple 
+      accept=".xlsx,.xls,.csv,.pdf,.docx,.txt"
+      onChange={(e) => {
+        const files = Array.from(e.target.files);
+        setUploadedFiles(prev => [...prev, ...files]);
+      }}
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        opacity: 0,
+        cursor: 'pointer'
+      }}
+    />
+    <div style={{
+  color: '#64748b',
+  fontSize: '0.875rem',
+  fontFamily: 'Lexend, sans-serif',
+  fontWeight: '500'
+}}>
+  Click to upload files or drag & drop
+  <br />
+  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+    Supports: Excel, CSV, PDF, Word, Text files
+  </span>
+</div>
+  </div>
   {uploadedFiles.length > 0 && (
     <div style={{ marginTop: '0.75rem' }}>
       {uploadedFiles.map((file, index) => (
@@ -482,8 +555,8 @@ margin: '0 auto 1rem auto',
     </div>
   )}
 </div>
-{/* END OF FILE UPLOAD CODE */}
-              <textarea
+
+<textarea
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
                 onKeyDown={(e) => {
