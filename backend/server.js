@@ -366,34 +366,6 @@ Generate ideas that feel like they were created by someone who carefully analyze
   }
 });
 
-    const content = response.content[0].text;
-    let ideas;
-    
-    try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        ideas = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('No JSON found in response');
-      }
-    } catch (parseError) {
-      console.error('JSON parsing error:', parseError);
-      console.error('Raw response:', content);
-      ideas = { 
-        ideas: [{ 
-          idea: "Error parsing AI response - please provide more specific conversational marketing context and try again.", 
-          expectedResult: "Unable to generate experiment recommendations without clear input context" 
-        }] 
-      };
-    }
-
-    res.json(ideas);
-  } catch (error) {
-    console.error('Error generating ideas:', error);
-    res.status(500).json({ error: 'Failed to generate experiment ideas' });
-  }
-});
-
 // Enhanced dynamic refinement with experiment context
 app.post('/api/refine-idea-custom', async (req, res) => {
   try {
