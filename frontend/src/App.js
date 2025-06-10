@@ -543,7 +543,16 @@ margin: '0 auto 1rem auto',
     </div>
   )}
 </div>
-
+<div style={{ marginBottom: '0.5rem' }}>
+  <span style={{
+    fontSize: '0.875rem',
+    fontWeight: '500',
+    color: '#64748b',
+    fontFamily: 'Lexend, sans-serif'
+  }}>
+    Example ideal prompt:
+  </span>
+</div>
 <textarea
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
@@ -562,7 +571,7 @@ margin: '0 auto 1rem auto',
                   border: '2px solid #e2e8f0',
                   borderRadius: '8px',
                   fontSize: '1rem',
-                  color: '#2d3748',
+                  color: '#64748b',
                   resize: 'none',
                   outline: 'none',
                   boxSizing: 'border-box',
