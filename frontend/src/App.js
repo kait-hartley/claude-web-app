@@ -5,7 +5,7 @@ import './App.css';
 function App() {
  
 // Auth state - ADD THESE FIRST
-const [isAuthenticated, setIsAuthenticated] = useState(true);
+const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authInput, setAuthInput] = useState('');
   
   // App state - ADD THIS TOO (you had this before)
@@ -33,60 +33,70 @@ const [customKPI, setCustomKPI] = useState('');
   };
 
   // Show auth screen if not authenticated
-  if (!isAuthenticated) {
-    return (
+if (!isAuthenticated) {
+  const handleAuth = (e) => {
+    e.preventDefault();
+    if (authInput === 'ConvMarketing2024') { // Change this password
+      setIsAuthenticated(true);
+    } else {
+      alert('Incorrect password');
+      setAuthInput('');
+    }
+  };
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #fff7ed 0%, #eff6ff 100%)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontFamily: 'Lexend, sans-serif'
+    }}>
       <div style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #fff7ed 0%, #eff6ff 100%)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontFamily: 'Lexend, sans-serif'
+        background: 'white',
+        padding: '2rem',
+        borderRadius: '8px',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+        maxWidth: '400px',
+        width: '100%'
       }}>
-        <div style={{
-          background: 'white',
-          padding: '2rem',
-          borderRadius: '8px',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-          maxWidth: '400px',
-          width: '100%'
-        }}>
-          <h2 style={{ textAlign: 'center', marginBottom: '1.5rem', color: '#2d3748' }}>
-            Access Required
-          </h2>
-          <form onSubmit={handleAuth}>
-            <input
-              type="password"
-              placeholder="Enter password"
-              value={authInput}
-              onChange={(e) => setAuthInput(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '1rem',
-                border: '2px solid #e2e8f0',
-                borderRadius: '6px',
-                marginBottom: '1rem',
-                fontSize: '1rem',
-                boxSizing: 'border-box'
-              }}
-            />
-            <button type="submit" style={{
+        <h2 style={{ textAlign: 'center', marginBottom: '1.5rem', color: '#2d3748' }}>
+          Access Required
+        </h2>
+        <form onSubmit={handleAuth}>
+          <input
+            type="password"
+            placeholder="Enter password"
+            value={authInput}
+            onChange={(e) => setAuthInput(e.target.value)}
+            style={{
               width: '100%',
               padding: '1rem',
-              background: '#ff7a59',
-              color: 'white',
-              border: 'none',
+              border: '2px solid #e2e8f0',
               borderRadius: '6px',
+              marginBottom: '1rem',
               fontSize: '1rem',
-              cursor: 'pointer'
-            }}>
-              Access Tool
-            </button>
-          </form>
-        </div>
+              boxSizing: 'border-box'
+            }}
+          />
+          <button type="submit" style={{
+            width: '100%',
+            padding: '1rem',
+            background: '#ff7a59',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            fontSize: '1rem',
+            cursor: 'pointer'
+          }}>
+            Access Tool
+          </button>
+        </form>
       </div>
-    );
-  }
+    </div>
+  );
+}
 
   // Add CSS animations as a style tag
   const KPI_OPTIONS = [
