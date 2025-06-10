@@ -32,18 +32,8 @@ const [customKPI, setCustomKPI] = useState('');
     }
   };
 
-  // Show auth screen if not authenticated
+ // Show auth screen if not authenticated
 if (!isAuthenticated) {
-  const handleAuth = (e) => {
-    e.preventDefault();
-    if (authInput === 'testing-idea-gen-tool2025!') { // Change this password
-      setIsAuthenticated(true);
-    } else {
-      alert('Incorrect password');
-      setAuthInput('');
-    }
-  };
-
   return (
     <div style={{
       minHeight: '100vh',
