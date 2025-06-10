@@ -88,10 +88,6 @@ const [customKPI, setCustomKPI] = useState('');
     );
   }
 
-  // Your existing app code starts here
-  const [currentScreen, setCurrentScreen] = useState('input');
-  // ... rest of your existing code
-
   // Add CSS animations as a style tag
   const KPI_OPTIONS = [
   { value: 'engagement_rate', label: 'Engagement Rate' },
