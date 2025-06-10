@@ -1079,17 +1079,18 @@ margin: '0 auto 1rem auto',
                           }}
                         >
                           {isRefining[idea.id] ? (
-                            <>
-                              <span style={{ 
-  fontSize: '16px',
-  animation: 'textBreathe 1.5s ease-in-out infinite',
-  letterSpacing: '2px'
+  <>
+    <span className="typing-dots" style={{ 
+fontSize: '16px',
+letterSpacing: '2px'
 }}>
-  •••
+  <span>•</span>
+  <span>•</span>
+  <span>•</span>
 </span>
 Refining...
-                            </>
-                          ) : (
+  </>
+) : (
                             <>
                               <Send size={16} />
                               Refine
