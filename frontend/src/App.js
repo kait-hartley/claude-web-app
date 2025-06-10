@@ -3,6 +3,13 @@ import { Zap, MessageCircle, Settings, ArrowLeft, Send, Copy, CheckCircle, Alert
 import './App.css';
 
 function App() {
+ 
+// Auth state - ADD THESE FIRST
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authInput, setAuthInput] = useState('');
+  
+  // App state - ADD THIS TOO (you had this before)
+  const [currentScreen, setCurrentScreen] = useState('input');
   const [userInput, setUserInput] = useState('');
   const [ideas, setIdeas] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
