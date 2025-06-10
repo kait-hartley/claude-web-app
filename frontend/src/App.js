@@ -259,7 +259,7 @@ const copyIdeaToClipboard = async (ideaId) => {
   const idea = ideas.find(idea => idea.id === ideaId);
   if (!idea) return;
   
-  const textToCopy = `IDEA: ${idea.idea}\n\nEXPECTED RESULT: ${idea.expectedResult}`;
+  const textToCopy = idea.idea;
   
   try {
     await navigator.clipboard.writeText(textToCopy);
