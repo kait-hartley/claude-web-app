@@ -550,7 +550,7 @@ margin: '0 auto 1rem auto',
     color: '#64748b',
     fontFamily: 'Lexend, sans-serif'
   }}>
-    Example ideal prompt:
+    Try something like this:
   </span>
 </div>
 <textarea
@@ -564,7 +564,7 @@ margin: '0 auto 1rem auto',
                     }
                   }
                 }}
-                placeholder="Our deflection rate dropped from 68% to 52% this month - users are getting frustrated with bot responses on billing questions and requesting ISC help more often. We tried adding more FAQ responses but it didn't help. Need ideas to get deflection rate back above 65% while keeping CSAT scores up. ISCs are overwhelmed with simple questions the bot should handle."
+                placeholder="Our deflection rate has dropped and users are getting frustrated with bot responses on billing questions. We tried adding more FAQ responses but it didn't help. Need ideas to improve bot performance without increasing ISC workload."
                 style={{
                   width: '100%',
                   padding: '1.25rem',
