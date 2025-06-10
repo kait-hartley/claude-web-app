@@ -422,7 +422,7 @@ margin: '0 auto 1rem auto',
   <div style={{ marginTop: '0.75rem' }}>
     <input
       type="text"
-      placeholder="Enter your custom KPI (e.g., Lead Response Time, Bot Accuracy Rate, etc.)"
+      placeholder="Enter your custom KPI (e.g., Sign-Ups CVR, Total QL Volume, Demo QLs, etc.)"
       value={customKPI}
       onChange={(e) => setCustomKPI(e.target.value)}
       style={{
