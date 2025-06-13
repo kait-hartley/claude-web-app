@@ -460,13 +460,23 @@ UNIVERSAL REQUIREMENTS FOR ALL 7 IDEAS:
 6. CONVERSATIONAL MARKETING TEAM FRIENDLY: Consider ideas that align with team expertise in chat optimization, bot management, and conversation experience design
 
 SUCCESS PROBABILITY CALIBRATION:
-Base success probability estimates on:
-- QL Volume Recovery: Target ideas that could help reverse -4% MoM, -26% YoY decline
-- Chat Engagement: Ideas to reverse -2% MoM bot chat volume decline
-- Tagging Accuracy: Improvements toward 90% goal (from current 78.3%)
-- Digital Channel Optimization: Build on 180% MRR attainment success
+Generate specific, confident success probability assessments using this format:
+- [Confidence Level] confidence - [X%] success likelihood based on '[Specific Bot/Experiment Name]' which achieved [Y%] improvement in [metric]. Pattern matches: [specific matching factors].
+
+Base assessments on proven experiment patterns:
+- Bot378 Salesbot (Onsite | EN | Partners): 97% deflection improvement, 76.5% success rate
+- Bot406 Demo RFF (Mobile | EN | Trial): 45% demo conversion boost, 80% success rate  
+- Bot362 Quick Replies (Homepage | Multi-language): 120% engagement increase, 83.3% success rate
+- Clay Automation Motion: +46% domain growth, +32% meetings booked
+- ISC Low Pro Pilot: 31% close rate across 4 deals
+- Sales Assist Phase 1: 81% tagging accuracy improvement
+
+Target current performance gaps:
+- QL Volume Recovery: -4% MoM, -26% YoY decline needs reversal
+- Chat Engagement: -2% MoM bot volume decline needs improvement  
+- Tagging Accuracy: 78.3% to 90% goal improvement needed
+- Digital Channel: Build on 180% MRR attainment success
 - Deflection Rate: Maintain/improve current 76% performance
-- Self-Service Progression: Ideas supporting journey to 30%+ self-service MRR
 
 PRIORITY ALIGNMENT:
 Every idea must directly address at least one current performance challenge:
@@ -481,8 +491,8 @@ JSON format:
   "ideas": [
     {
       "idea": "[~40 words addressing specific current performance challenge using exact user terminology, implementable via HubSpot ChatFlow]",
-      "successProbability": "High probability (X-Y%) of achieving [specific metric improvement] based on [similar successful pattern] with [risk factors/considerations], measured through [HubSpot tracking method]",
-      "sources": ["HubSpot [specific feature/integration]", "Experiment pattern: [specific successful pattern with success rate]"]
+      "successProbability": "[High/Medium/Low] confidence - [X%] success likelihood based on '[Specific Bot/Experiment Name]' which achieved [Y%] improvement in [metric]. Pattern matches: [specific targeting strategy/implementation approach]. Risk factors: [potential challenges]. Measured via [HubSpot tracking method].",
+      "sources": ["[Specific Experiment Name with Success Rate](https://internal-experiment-link)", "HubSpot [specific ChatFlow feature](https://knowledge.hubspot.com/chatflows)", "[Proven Pattern]: [X%] success rate across [Y] experiments"]
     }
   ]
 }
@@ -517,8 +527,8 @@ Generate 7 ideas that feel custom-created for their exact challenge, with each i
       ideas = { 
         ideas: [{ 
           idea: "Error parsing AI response - please provide more specific conversational marketing context and try again.", 
-          successProbability: "Unable to generate success probability without clear input context",
-          sources: ["System error"]
+          successProbability: "Unable to generate success probability assessment without clear input context and experiment matching",
+          sources: ["System error", "Please retry with more specific input"]
         }] 
       };
     }
@@ -653,8 +663,8 @@ The refined idea should be achievable through HubSpot's current ChatFlow capabil
 JSON format:
 {
   "idea": "[Refined ~40 words using their exact terminology, implementable via HubSpot ChatFlow]",
-  "successProbability": "High probability (X-Y%) of achieving [specific metric improvement] based on [similar successful pattern] with [refined considerations], measured through [HubSpot tracking]",
-  "sources": ["HubSpot [specific feature]", "Experiment pattern: [pattern with success rate]"]
+  "successProbability": "[High/Medium/Low] confidence - [X%] success likelihood based on '[Specific Bot/Experiment Name]' which achieved [Y%] improvement in [metric]. Pattern matches: [refined considerations]. Risk factors: [updated challenges]. Measured via [HubSpot tracking].",
+  "sources": ["[Specific Experiment](https://experiment-link)", "HubSpot [specific feature](https://knowledge.hubspot.com)", "[Pattern]: [X%] success rate"]
 }`;
 
     const response = await anthropic.messages.create({
@@ -717,7 +727,7 @@ app.post('/api/refine-idea', async (req, res) => {
         break;
     }
     
-    prompt += '\n\nEnsure the refined idea is implementable through HubSpot ChatFlow capabilities and avoids the 94 already-tested experiment patterns.\n\nReturn JSON format: {"idea": "refined idea", "successProbability": "refined success probability", "sources": ["HubSpot feature", "Experiment pattern"]}';
+    prompt += '\n\nEnsure the refined idea is implementable through HubSpot ChatFlow capabilities and avoids the 94 already-tested experiment patterns.\n\nReturn JSON format: {"idea": "refined idea", "successProbability": "[Confidence] confidence - [X%] success likelihood based on [specific experiment/pattern]. Pattern matches: [factors]. Risk factors: [considerations]. Measured via [HubSpot method].", "sources": ["[Experiment Name](link)", "HubSpot [feature](link)", "[Pattern]: [success rate]"]}';
 
     const response = await anthropic.messages.create({
       model: 'claude-3-5-sonnet-20241022',
