@@ -1,38 +1,44 @@
 import React, { useState } from 'react'
-import { Zap, MessageCircle, Settings, ArrowLeft, Send, Copy, CheckCircle, AlertCircle } from 'lucide-react';
+import { Zap, MessageCircle, Settings, ArrowLeft, Send, Copy, CheckCircle, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import './App.css';
 
 function App() {
  
-// Auth state - ADD THESE FIRST
+// Auth state
 const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [authInput, setAuthInput] = useState('');
+const [authInput, setAuthInput] = useState('');
   
-  // App state - ADD THIS TOO (you had this before)
-  const [currentScreen, setCurrentScreen] = useState('input');
-  const [userInput, setUserInput] = useState('');
-  const [ideas, setIdeas] = useState([]);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [refinementInputs, setRefinementInputs] = useState({});
-  const [isRefining, setIsRefining] = useState({});
-  const [error, setError] = useState(null);
-  const [retryCount, setRetryCount] = useState(0);
-  const [copiedIdeas, setCopiedIdeas] = useState({});
+// App state
+const [currentScreen, setCurrentScreen] = useState('input');
+const [userInput, setUserInput] = useState('');
+const [ideas, setIdeas] = useState([]);
+const [isGenerating, setIsGenerating] = useState(false);
+const [refinementInputs, setRefinementInputs] = useState({});
+const [isRefining, setIsRefining] = useState({});
+const [error, setError] = useState(null);
+const [retryCount, setRetryCount] = useState(0);
+const [copiedIdeas, setCopiedIdeas] = useState({});
 const [selectedKPI, setSelectedKPI] = useState('');
 const [uploadedFiles, setUploadedFiles] = useState([]);
 const [customKPI, setCustomKPI] = useState('');
 
-// Simple auth check
-  const handleAuth = (e) => {
-    e.preventDefault();
-    if (authInput === 'testing-idea-gen-tool2025!') { // Change this password
-      setIsAuthenticated(true);
-    } else {
-      alert('Incorrect password');
-    }
-  };
+// Implementation steps and sorting state
+const [implementationSteps, setImplementationSteps] = useState({});
+const [loadingSteps, setLoadingSteps] = useState({});
+const [sortOption, setSortOption] = useState('');
+const [expandedSteps, setExpandedSteps] = useState({});
 
- // Show auth screen if not authenticated
+// Simple auth check
+const handleAuth = (e) => {
+  e.preventDefault();
+  if (authInput === 'testing-idea-gen-tool2025!') {
+    setIsAuthenticated(true);
+  } else {
+    alert('Incorrect password');
+  }
+};
+
+// Show auth screen if not authenticated
 if (!isAuthenticated) {
   return (
     <div style={{
@@ -88,8 +94,7 @@ if (!isAuthenticated) {
   );
 }
 
-  // Add CSS animations as a style tag
-  const KPI_OPTIONS = [
+const KPI_OPTIONS = [
   { value: 'engagement_rate', label: 'Engagement Rate' },
   { value: 'handoff_rate', label: 'Hand-off Rate' },
   { value: 'deflection_rate', label: 'Deflection Rate' },
@@ -103,6 +108,16 @@ if (!isAuthenticated) {
   { value: 'demo_rff', label: 'Demo RFF' },
   { value: 'other', label: 'Other (specify below)' }
 ];
+
+// Sort options for ideas
+const SORT_OPTIONS = [
+  { value: '', label: 'Default Order' },
+  { value: 'impact_high', label: 'Highest Impact First' },
+  { value: 'impact_low', label: 'Lowest Impact First' },
+  { value: 'complexity_simple', label: 'Simplest Implementation First' },
+  { value: 'complexity_complex', label: 'Most Complex First' }
+];
+
 const styles = `
     @keyframes fadeInUp {
       from {
@@ -154,32 +169,166 @@ const styles = `
     .card-hover:hover {
       box-shadow: 0 4px 12px rgba(255, 122, 89, 0.1);
     }
-@keyframes typingDots {
-  0%, 60%, 100% {
-    opacity: 0.3;
-  }
-  30% {
-    opacity: 1;
-  }
-}
 
-.typing-dots span:nth-child(1) {
-  animation: typingDots 1.4s infinite;
-  animation-delay: 0s;
-}
+    @keyframes typingDots {
+      0%, 60%, 100% {
+        opacity: 0.3;
+      }
+      30% {
+        opacity: 1;
+      }
+    }
 
-.typing-dots span:nth-child(2) {
-  animation: typingDots 1.4s infinite;
-  animation-delay: 0.2s;
-}
+    .typing-dots span:nth-child(1) {
+      animation: typingDots 1.4s infinite;
+      animation-delay: 0s;
+    }
 
-.typing-dots span:nth-child(3) {
-  animation: typingDots 1.4s infinite;
-  animation-delay: 0.4s;
-}Generating New Ideas
+    .typing-dots span:nth-child(2) {
+      animation: typingDots 1.4s infinite;
+      animation-delay: 0.2s;
+    }
+
+    .typing-dots span:nth-child(3) {
+      animation: typingDots 1.4s infinite;
+      animation-delay: 0.4s;
+    }
+
+    .implementation-steps {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      margin-top: 1rem;
+      overflow: hidden;
+    }
+
+    .step-item {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+
+    .step-item:last-child {
+      border-bottom: none;
+    }
+
+    .step-number {
+      background: #ff7a59;
+      color: white;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
   `;
 
-  const handleGenerateIdeas = async (isRetry = false) => {
+// Function to extract impact percentage from expectedResult
+const extractImpactScore = (expectedResult) => {
+  const match = expectedResult.match(/(\d+)-(\d+)%|\b(\d+)%/);
+  if (match) {
+    if (match[1] && match[2]) {
+      return (parseInt(match[1]) + parseInt(match[2])) / 2;
+    } else if (match[3]) {
+      return parseInt(match[3]);
+    }
+  }
+  return 50; // Default score if no percentage found
+};
+
+// Function to estimate complexity based on idea content
+const estimateComplexity = (idea) => {
+  const complexKeywords = ['integration', 'workflow', 'automation', 'api', 'advanced', 'multiple', 'complex'];
+  const simpleKeywords = ['quick', 'simple', 'basic', 'single', 'direct', 'immediate'];
+  
+  let complexity = 5; // Default medium complexity
+  
+  complexKeywords.forEach(keyword => {
+    if (idea.toLowerCase().includes(keyword)) complexity += 2;
+  });
+  
+  simpleKeywords.forEach(keyword => {
+    if (idea.toLowerCase().includes(keyword)) complexity -= 2;
+  });
+  
+  return Math.max(1, Math.min(10, complexity)); // Keep between 1-10
+};
+
+// Function to sort ideas
+const getSortedIdeas = (ideas, sortOption) => {
+  if (!sortOption) return ideas;
+  
+  const sortedIdeas = [...ideas];
+  
+  switch (sortOption) {
+    case 'impact_high':
+      return sortedIdeas.sort((a, b) => extractImpactScore(b.expectedResult) - extractImpactScore(a.expectedResult));
+    case 'impact_low':
+      return sortedIdeas.sort((a, b) => extractImpactScore(a.expectedResult) - extractImpactScore(b.expectedResult));
+    case 'complexity_simple':
+      return sortedIdeas.sort((a, b) => estimateComplexity(a.idea) - estimateComplexity(b.idea));
+    case 'complexity_complex':
+      return sortedIdeas.sort((a, b) => estimateComplexity(b.idea) - estimateComplexity(a.idea));
+    default:
+      return sortedIdeas;
+  }
+};
+
+// Function to fetch implementation steps
+const fetchImplementationSteps = async (ideaId) => {
+  const idea = ideas.find(idea => idea.id === ideaId);
+  if (!idea || implementationSteps[ideaId]) return;
+
+  setLoadingSteps(prev => ({ ...prev, [ideaId]: true }));
+
+  try {
+    const response = await fetch('https://claude-web-app.onrender.com/api/implementation-steps', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        idea: idea.idea,
+        expectedResult: idea.expectedResult,
+        originalUserInput: userInput
+      }),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Server error: ${response.status}`);
+    }
+    
+    const stepsData = await response.json();
+    
+    setImplementationSteps(prev => ({
+      ...prev,
+      [ideaId]: stepsData.implementationSteps || []
+    }));
+    
+  } catch (error) {
+    console.error('Error fetching implementation steps:', error);
+    setImplementationSteps(prev => ({
+      ...prev,
+      [ideaId]: [
+        {
+          stepNumber: 1,
+          title: "Configure ChatFlow",
+          description: "Set up basic chatflow in HubSpot Service > Chatflows"
+        }
+      ]
+    }));
+  } finally {
+    setLoadingSteps(prev => ({ ...prev, [ideaId]: false }));
+  }
+};
+
+const handleGenerateIdeas = async (isRetry = false) => {
   if (!userInput.trim()) return;
   
   setIsGenerating(true);
@@ -191,7 +340,6 @@ const styles = `
     formData.append('selectedKPI', selectedKPI);
     formData.append('customKPI', customKPI);
     
-    // Add uploaded files to FormData
     uploadedFiles.forEach((file, index) => {
       formData.append('files', file);
     });
@@ -220,10 +368,14 @@ const styles = `
     setCurrentScreen('output');
     setRetryCount(0);
     
-    // Clear any existing refinement inputs when generating new ideas
+    // Clear states when generating new ideas
     setRefinementInputs({});
     setIsRefining({});
     setCopiedIdeas({});
+    setImplementationSteps({});
+    setLoadingSteps({});
+    setExpandedSteps({});
+    setSortOption('');
     
   } catch (error) {
     console.error('Error generating ideas:', error);
@@ -254,14 +406,15 @@ const styles = `
     setIsGenerating(false);
   }
 };
-  const handleRefinementInputChange = (ideaId, value) => {
-    setRefinementInputs(prev => ({
-      ...prev,
-      [ideaId]: value
-    }));
-  };
 
-   const refineIdeaWithCustomInput = async (ideaId) => {
+const handleRefinementInputChange = (ideaId, value) => {
+  setRefinementInputs(prev => ({
+    ...prev,
+    [ideaId]: value
+  }));
+};
+
+const refineIdeaWithCustomInput = async (ideaId) => {
   const ideaToRefine = ideas.find(idea => idea.id === ideaId);
   const customInput = refinementInputs[ideaId];
   
@@ -302,11 +455,18 @@ const styles = `
       )
     );
     
-    // Clear the input after successful refinement
+    // Clear the input and any cached implementation steps for this idea
     setRefinementInputs(prev => ({
       ...prev,
       [ideaId]: ''
     }));
+    
+    // Clear implementation steps since idea changed
+    setImplementationSteps(prev => {
+      const newSteps = { ...prev };
+      delete newSteps[ideaId];
+      return newSteps;
+    });
     
   } catch (error) {
     console.error('Error refining idea:', error);
@@ -327,6 +487,7 @@ const styles = `
     setIsRefining(prev => ({ ...prev, [ideaId]: false }));
   }
 };
+
 const copyIdeaToClipboard = async (ideaId) => {
   const idea = ideas.find(idea => idea.id === ideaId);
   if (!idea) return;
@@ -337,14 +498,12 @@ const copyIdeaToClipboard = async (ideaId) => {
     await navigator.clipboard.writeText(textToCopy);
     setCopiedIdeas(prev => ({ ...prev, [ideaId]: true }));
     
-    // Clear the copied state after 2 seconds
     setTimeout(() => {
       setCopiedIdeas(prev => ({ ...prev, [ideaId]: false }));
     }, 2000);
     
   } catch (error) {
     console.error('Failed to copy to clipboard:', error);
-    // Fallback for older browsers
     const textArea = document.createElement('textarea');
     textArea.value = textToCopy;
     document.body.appendChild(textArea);
@@ -371,282 +530,112 @@ const resetToInput = () => {
   setSelectedKPI('');
   setUploadedFiles([]);
   setCustomKPI('');
+  setImplementationSteps({});
+  setLoadingSteps({});
+  setExpandedSteps({});
+  setSortOption('');
 };
 
-  const editPrompt = () => {
-    setCurrentScreen('input');
-    // Keep the original input so user can edit it
-    // Don't reset ideas, error, etc. - they'll be replaced when new ideas generate
-  };
+const editPrompt = () => {
+  setCurrentScreen('input');
+};
 
-  const handleRetry = () => {
-    handleGenerateIdeas(true);
-  };
+const handleRetry = () => {
+  handleGenerateIdeas(true);
+};
 
-  if (currentScreen === 'input') {
-    return (
-      <>
-        <style>{styles}</style>
-        <div style={{
-          minHeight: '100vh',
-          background: 'linear-gradient(135deg, #fff7ed 0%, #eff6ff 100%)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '1rem',
-          fontFamily: 'Lexend, sans-serif'
+// Toggle implementation steps expansion
+const toggleImplementationSteps = (ideaId) => {
+  if (!expandedSteps[ideaId]) {
+    fetchImplementationSteps(ideaId);
+  }
+  setExpandedSteps(prev => ({
+    ...prev,
+    [ideaId]: !prev[ideaId]
+  }));
+};
+
+if (currentScreen === 'input') {
+  return (
+    <>
+      <style>{styles}</style>
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #fff7ed 0%, #eff6ff 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem',
+        fontFamily: 'Lexend, sans-serif'
+      }}>
+        <div className="fade-in-up pulse-glow" style={{
+          background: 'white',
+          borderRadius: '8px',
+          padding: '2.5rem',
+          maxWidth: '42rem',
+          width: '100%'
         }}>
-          <div className="fade-in-up pulse-glow" style={{
-            background: 'white',
-            borderRadius: '8px',
-            padding: '2.5rem',
-            maxWidth: '42rem',
-            width: '100%'
-          }}>
-            <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
-              <div style={{
-                backgroundColor: '#ff7a59',
-                width: '60px',
-                height: '60px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-margin: '0 auto 1rem auto',
-                boxShadow: '0 4px 12px rgba(255, 122, 89, 0.3)',
-              }}>
-                <MessageCircle size={28} color="white" />
-              </div>
-              <h1 className="text-breathe" style={{
-                fontSize: '2rem',
+          <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+            <div style={{
+              backgroundColor: '#ff7a59',
+              width: '60px',
+              height: '60px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 1rem auto',
+              boxShadow: '0 4px 12px rgba(255, 122, 89, 0.3)',
+            }}>
+              <MessageCircle size={28} color="white" />
+            </div>
+            <h1 className="text-breathe" style={{
+              fontSize: '2rem',
+              fontWeight: '600',
+              color: '#2d3748',
+              marginBottom: '0.75rem',
+              fontFamily: 'Lexend, sans-serif'
+            }}>
+              Conversational Marketing Experiment Idea Generator
+            </h1>
+            <p className="text-breathe" style={{
+              color: '#64748b',
+              fontSize: '1.125rem',
+              fontFamily: 'Lexend, sans-serif',
+              animationDelay: '1s'
+            }}>
+              {ideas.length > 0 ? 'Edit your prompt to generate fresh experiment ideas' : 'Get 7 strategic ideas for your HubSpot chat experiences'}
+            </p>
+          </div>
+          
+          <div style={{ marginBottom: '2rem' }}>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '1rem',
                 fontWeight: '600',
                 color: '#2d3748',
-                marginBottom: '0.75rem',
+                marginBottom: '0.5rem',
                 fontFamily: 'Lexend, sans-serif'
               }}>
-                Conversational Marketing Experiment Idea Generator
-              </h1>
-              <p className="text-breathe" style={{
-                color: '#64748b',
-                fontSize: '1.125rem',
-                fontFamily: 'Lexend, sans-serif',
-                animationDelay: '1s'
-              }}>
-                {ideas.length > 0 ? 'Edit your prompt to generate fresh experiment ideas' : 'Get inspired with fresh ideas for your HubSpot chat experiences'}
-              </p>
-            </div>
-            
-            <div style={{ marginBottom: '2rem' }}>
-<div style={{ marginBottom: '1.5rem' }}>
-  <label style={{
-    display: 'block',
-    fontSize: '1rem',
-    fontWeight: '600',
-    color: '#2d3748',
-    marginBottom: '0.5rem',
-    fontFamily: 'Lexend, sans-serif'
-  }}>
-    Which KPI would you like to improve?
-  </label>
-  <select 
-    value={selectedKPI} 
-    onChange={(e) => setSelectedKPI(e.target.value)}
-    style={{
-      width: '100%',
-      padding: '1rem',
-      border: '2px solid #e2e8f0',
-      borderRadius: '8px',
-      fontSize: '1rem',
-      color: '#2d3748',
-      outline: 'none',
-      boxSizing: 'border-box',
-      fontFamily: 'Lexend, sans-serif',
-      backgroundColor: 'white',
-      transition: 'all 0.3s ease'
-    }}
-    onFocus={(e) => {
-      e.target.style.borderColor = '#ff7a59';
-      e.target.style.boxShadow = '0 0 0 2px rgba(255, 122, 89, 0.08)';
-    }}
-    onBlur={(e) => {
-      e.target.style.borderColor = '#e2e8f0';
-      e.target.style.boxShadow = 'none';
-    }}
-  >
-    <option value="">Select a KPI (optional)</option>
-    {KPI_OPTIONS.map(kpi => (
-      <option key={kpi.value} value={kpi.value}>
-        {kpi.label}
-      </option>
-    ))}
-</select>
-{selectedKPI === 'other' && (
-  <div style={{ marginTop: '0.75rem' }}>
-    <input
-      type="text"
-      placeholder="Enter your custom KPI (e.g., Sign-Ups CVR, Total QL Volume, Demo QLs, etc.)"
-      value={customKPI}
-      onChange={(e) => setCustomKPI(e.target.value)}
-      style={{
-        width: '100%',
-        padding: '0.75rem',
-        border: '2px solid #e2e8f0',
-        borderRadius: '6px',
-        fontSize: '0.875rem',
-        color: '#2d3748',
-        outline: 'none',
-        boxSizing: 'border-box',
-        fontFamily: 'Lexend, sans-serif',
-        backgroundColor: 'white',
-        transition: 'all 0.3s ease'
-      }}
-      onFocus={(e) => {
-        e.target.style.borderColor = '#ff7a59';
-        e.target.style.boxShadow = '0 0 0 2px rgba(255, 122, 89, 0.08)';
-      }}
-   onBlur={(e) => {
-        e.target.style.borderColor = '#e2e8f0';
-        e.target.style.boxShadow = 'none';
-      }}
-    />
-  </div>
-)}
-</div>
-
-{/* ADD FILE UPLOAD SECTION HERE */}
-<div style={{ marginBottom: '1.5rem' }}>
-  <label style={{
-    display: 'block',
-    fontSize: '1rem',
-    fontWeight: '600',
-    color: '#2d3748',
-    marginBottom: '0.5rem',
-    fontFamily: 'Lexend, sans-serif'
-  }}>
-    Upload experiment docs/sheets (optional)
-  </label>
-  <div style={{
-    width: '100%',
-    padding: '1rem',
-    border: '2px dashed #cbd5e0',
-    borderRadius: '8px',
-    backgroundColor: '#f8fafc',
-    textAlign: 'center',
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
-    position: 'relative'
-  }}
-  onMouseOver={(e) => {
-    e.target.style.borderColor = '#ff7a59';
-    e.target.style.backgroundColor = '#fff8f6';
-  }}
-  onMouseOut={(e) => {
-    e.target.style.borderColor = '#cbd5e0';
-    e.target.style.backgroundColor = '#f8fafc';
-  }}
-  >
-    <input 
-      type="file" 
-      multiple 
-      accept=".xlsx,.xls,.csv,.pdf,.docx,.txt"
-      onChange={(e) => {
-        const files = Array.from(e.target.files);
-        setUploadedFiles(prev => [...prev, ...files]);
-      }}
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        opacity: 0,
-        cursor: 'pointer'
-      }}
-    />
-    <div style={{
-  color: '#64748b',
-  fontSize: '0.875rem',
-  fontFamily: 'Lexend, sans-serif',
-  fontWeight: '500'
-}}>
-  Click to upload files or drag & drop
-  <br />
-  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-    Supports: Excel, CSV, PDF, Word, Text files
-  </span>
-</div>
-  </div>
-  {uploadedFiles.length > 0 && (
-    <div style={{ marginTop: '0.75rem' }}>
-      {uploadedFiles.map((file, index) => (
-        <div key={index} style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          backgroundColor: '#f8fafc',
-          padding: '0.5rem 0.75rem',
-          borderRadius: '4px',
-          marginBottom: '0.5rem',
-          border: '1px solid #e2e8f0'
-        }}>
-          <span style={{
-            fontSize: '0.875rem',
-            color: '#475569',
-            fontFamily: 'Lexend, sans-serif'
-          }}>
-            {file.name}
-          </span>
-          <button
-            onClick={() => setUploadedFiles(prev => prev.filter((_, i) => i !== index))}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#dc2626',
-              cursor: 'pointer',
-              fontSize: '0.75rem',
-              fontFamily: 'Lexend, sans-serif',
-              padding: '0.25rem 0.5rem'
-            }}
-          >
-            Remove
-          </button>
-        </div>
-      ))}
-    </div>
-  )}
-</div>
-<div style={{ marginBottom: '0.5rem' }}>
-  <label style={{
-    display: 'block',
-    fontSize: '1rem',
-    fontWeight: '600',
-    color: '#2d3748',
-    marginBottom: '0.5rem',
-    fontFamily: 'Lexend, sans-serif'
-  }}>
-    What would you like ideas for?
-  </label>
-</div>
-
-<textarea
-  value={userInput}
-  onChange={(e) => setUserInput(e.target.value)}
-  placeholder="Try something like this: Our deflection rate has dropped and users are getting frustrated with bot responses on billing questions. We tried adding more FAQ responses but it didn't help. Need ideas to improve bot performance without increasing ISC workload."
+                Which KPI would you like to improve?
+              </label>
+              <select 
+                value={selectedKPI} 
+                onChange={(e) => setSelectedKPI(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '1.25rem',
+                  padding: '1rem',
                   border: '2px solid #e2e8f0',
                   borderRadius: '8px',
                   fontSize: '1rem',
-                  color: '#64748b',
-                  resize: 'none',
+                  color: '#2d3748',
                   outline: 'none',
                   boxSizing: 'border-box',
                   fontFamily: 'Lexend, sans-serif',
-                  lineHeight: '1.5',
+                  backgroundColor: 'white',
                   transition: 'all 0.3s ease'
                 }}
-                rows="4"
                 onFocus={(e) => {
                   e.target.style.borderColor = '#ff7a59';
                   e.target.style.boxShadow = '0 0 0 2px rgba(255, 122, 89, 0.08)';
@@ -655,250 +644,190 @@ margin: '0 auto 1rem auto',
                   e.target.style.borderColor = '#e2e8f0';
                   e.target.style.boxShadow = 'none';
                 }}
-              />
-            </div>
-            
-            {error && (
-              <div className="fade-in-up" style={{
-                backgroundColor: '#fef2f2',
-                border: '1px solid #fecaca',
-                borderRadius: '8px',
-                padding: '1rem',
-                marginBottom: '1rem'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  marginBottom: '0.5rem'
-                }}>
-                  <AlertCircle size={20} color="#dc2626" />
-                  <span style={{
-                    color: '#dc2626',
-                    fontWeight: '600',
-                    fontFamily: 'Lexend, sans-serif'
-                  }}>
-                    Error
-                  </span>
-                </div>
-                <p style={{
-                  color: '#7f1d1d',
-                  fontSize: '0.875rem',
-                  fontFamily: 'Lexend, sans-serif',
-                  margin: 0,
-                  marginBottom: error.canRetry ? '1rem' : 0
-                }}>
-                  {error.message}
-                </p>
-                {error.canRetry && (
-                  <button
-                    onClick={handleRetry}
+              >
+                <option value="">Select a KPI (optional)</option>
+                {KPI_OPTIONS.map(kpi => (
+                  <option key={kpi.value} value={kpi.value}>
+                    {kpi.label}
+                  </option>
+                ))}
+              </select>
+              {selectedKPI === 'other' && (
+                <div style={{ marginTop: '0.75rem' }}>
+                  <input
+                    type="text"
+                    placeholder="Enter your custom KPI (e.g., Sign-Ups CVR, Total QL Volume, Demo QLs, etc.)"
+                    value={customKPI}
+                    onChange={(e) => setCustomKPI(e.target.value)}
                     style={{
-                      backgroundColor: '#dc2626',
-                      color: 'white',
-                      padding: '0.5rem 1rem',
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: '2px solid #e2e8f0',
                       borderRadius: '6px',
-                      border: 'none',
-                      cursor: 'pointer',
                       fontSize: '0.875rem',
-                      fontWeight: '500',
+                      color: '#2d3748',
+                      outline: 'none',
+                      boxSizing: 'border-box',
                       fontFamily: 'Lexend, sans-serif',
-                      transition: 'all 0.2s ease'
+                      backgroundColor: 'white',
+                      transition: 'all 0.3s ease'
                     }}
-                  >
-                    Retry {retryCount > 0 && `(Attempt ${retryCount + 1})`}
-                  </button>
-                )}
-              </div>
-            )}
-            
-            <button
-              onClick={() => handleGenerateIdeas(false)}
-              disabled={!userInput.trim() || isGenerating}
-              style={{
-                width: '100%',                backgroundColor: isGenerating || !userInput.trim() ? '#cbd5e0' : '#ff7a59',
-                color: 'white',
+                    onFocus={(e) => {
+                      e.target.style.borderColor = '#ff7a59';
+                      e.target.style.boxShadow = '0 0 0 2px rgba(255, 122, 89, 0.08)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.borderColor = '#e2e8f0';
+                      e.target.style.boxShadow = 'none';
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '1rem',
                 fontWeight: '600',
-                padding: '1.25rem 1.5rem',
-                borderRadius: '8px',
-                border: 'none',
-                cursor: isGenerating || !userInput.trim() ? 'not-allowed' : 'pointer',
-                fontSize: '1.125rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.75rem',
-                transition: 'all 0.2s ease',
+                color: '#2d3748',
+                marginBottom: '0.5rem',
                 fontFamily: 'Lexend, sans-serif'
+              }}>
+                Upload experiment docs/sheets (optional)
+              </label>
+              <div style={{
+                width: '100%',
+                padding: '1rem',
+                border: '2px dashed #cbd5e0',
+                borderRadius: '8px',
+                backgroundColor: '#f8fafc',
+                textAlign: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                position: 'relative'
               }}
               onMouseOver={(e) => {
-                if (!isGenerating && userInput.trim()) {
-                  e.target.style.backgroundColor = '#ff5722';
-                }
+                e.target.style.borderColor = '#ff7a59';
+                e.target.style.backgroundColor = '#fff8f6';
               }}
               onMouseOut={(e) => {
-                if (!isGenerating && userInput.trim()) {
-                  e.target.style.backgroundColor = '#ff7a59';
-                }
+                e.target.style.borderColor = '#cbd5e0';
+                e.target.style.backgroundColor = '#f8fafc';
               }}
-            >
-              {isGenerating ? (
-  <>
-    <span className="typing-dots" style={{ 
-  fontSize: '22px',
-  letterSpacing: '4px'
-}}>
-  <span>•</span>
-  <span>•</span>
-  <span>•</span>
-</span>
-    Generating New Ideas...
-  </>
-) : (
-  <>
-    <Zap size={22} />
-    {ideas.length > 0 ? 'Generate New Ideas' : 'Get Inspired'}
-  </>
-)}
-            </button>
-          </div>
-        </div>
-      </>
-    );
-  }
+              >
+                <input 
+                  type="file" 
+                  multiple 
+                  accept=".xlsx,.xls,.csv,.pdf,.docx,.txt"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files);
+                    setUploadedFiles(prev => [...prev, ...files]);
+                  }}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    opacity: 0,
+                    cursor: 'pointer'
+                  }}
+                />
+                <div style={{
+                  color: '#64748b',
+                  fontSize: '0.875rem',
+                  fontFamily: 'Lexend, sans-serif',
+                  fontWeight: '500'
+                }}>
+                  Click to upload files or drag & drop
+                  <br />
+                  <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                    Supports: Excel, CSV, PDF, Word, Text files
+                  </span>
+                </div>
+              </div>
+              {uploadedFiles.length > 0 && (
+                <div style={{ marginTop: '0.75rem' }}>
+                  {uploadedFiles.map((file, index) => (
+                    <div key={index} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      backgroundColor: '#f8fafc',
+                      padding: '0.5rem 0.75rem',
+                      borderRadius: '4px',
+                      marginBottom: '0.5rem',
+                      border: '1px solid #e2e8f0'
+                    }}>
+                      <span style={{
+                        fontSize: '0.875rem',
+                        color: '#475569',
+                        fontFamily: 'Lexend, sans-serif'
+                      }}>
+                        {file.name}
+                      </span>
+                      <button
+                        onClick={() => setUploadedFiles(prev => prev.filter((_, i) => i !== index))}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#dc2626',
+                          cursor: 'pointer',
+                          fontSize: '0.75rem',
+                          fontFamily: 'Lexend, sans-serif',
+                          padding: '0.25rem 0.5rem'
+                        }}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-  return (
-    <>
-      <style>{styles}</style>
-      <div style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #fff7ed 0%, #eff6ff 100%)',
-        padding: '1rem',
-        fontFamily: 'Lexend, sans-serif'
-      }}>
-        <div className="fade-in-up" style={{
-          maxWidth: '64rem',
-          margin: '0 auto',
-          background: 'white',
-          borderRadius: '8px',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-          padding: '2rem'
-        }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '2rem'
-          }}>
-            <h1 style={{
-              fontSize: '1.75rem',
-              fontWeight: '600',
-              color: '#2d3748',
-              fontFamily: 'Lexend, sans-serif'
-            }}>
-              Your Ideas
-            </h1>
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <div
-                onClick={editPrompt}
-                style={{
-                  backgroundColor: '#64748b',
-                  color: 'white',
-                  padding: '0.875rem 1.5rem',
-                  borderRadius: '8px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  fontFamily: 'Lexend, sans-serif',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  fontSize: '1rem'
-                }}
-                onMouseOver={(e) => {
-                  e.target.style.backgroundColor = '#475569';
-                  e.target.style.transform = 'translateY(-1px)';
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.backgroundColor = '#64748b';
-                  e.target.style.transform = 'translateY(0px)';
-                }}
-              >
-                <Settings size={18} />
-                Edit Prompt
-              </div>
-              <div
-                onClick={resetToInput}
-                style={{
-                  backgroundColor: '#ff7a59',
-                  color: 'white',
-                  padding: '0.875rem 1.5rem',
-                  borderRadius: '8px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                  fontFamily: 'Lexend, sans-serif',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  fontSize: '1rem'
-                }}
-                onMouseOver={(e) => {
-                  e.target.style.backgroundColor = '#ff5722';
-                  e.target.style.transform = 'translateY(-1px)';
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.backgroundColor = '#ff7a59';
-                  e.target.style.transform = 'translateY(0px)';
-                }}
-              >
-                <ArrowLeft size={18} />
-                New Prompt
-              </div>
-            </div>
-          </div>
-          
-          {/* Show original prompt */}
-          <div className="fade-in-up" style={{
-            backgroundColor: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            borderRadius: '8px',
-            padding: '1.5rem',
-            marginBottom: '2rem'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              marginBottom: '0.75rem'
-            }}>
-              <div style={{
-                width: '6px',
-                height: '6px',
-                borderRadius: '50%',
-                backgroundColor: '#64748b'
-              }}></div>
-              <span style={{
-                color: '#64748b',
+            <div style={{ marginBottom: '0.5rem' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '1rem',
                 fontWeight: '600',
-                fontSize: '0.875rem',
-                fontFamily: 'Lexend, sans-serif',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px'
+                color: '#2d3748',
+                marginBottom: '0.5rem',
+                fontFamily: 'Lexend, sans-serif'
               }}>
-                Original Prompt
-              </span>
+                What would you like ideas for?
+              </label>
             </div>
-            <p style={{
-              color: '#475569',
-              fontSize: '1rem',
-              margin: 0,
-              fontFamily: 'Lexend, sans-serif',
-              lineHeight: '1.5',
-              fontStyle: 'italic'
-            }}>
-              "{userInput}"
-            </p>
+
+            <textarea
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              placeholder="Try something like this: Our QL volume is down 26% YoY and chat engagement is declining 2% MoM. Need ideas to reverse this trend that complement our Digital channel success (180% attainment) without interfering with our active ISC Closing pilot."
+              style={{
+                width: '100%',
+                padding: '1.25rem',
+                border: '2px solid #e2e8f0',
+                borderRadius: '8px',
+                fontSize: '1rem',
+                color: '#64748b',
+                resize: 'none',
+                outline: 'none',
+                boxSizing: 'border-box',
+                fontFamily: 'Lexend, sans-serif',
+                lineHeight: '1.5',
+                transition: 'all 0.3s ease'
+              }}
+              rows="4"
+              onFocus={(e) => {
+                e.target.style.borderColor = '#ff7a59';
+                e.target.style.boxShadow = '0 0 0 2px rgba(255, 122, 89, 0.08)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e2e8f0';
+                e.target.style.boxShadow = 'none';
+              }}
+            />
           </div>
           
           {error && (
@@ -907,12 +836,13 @@ margin: '0 auto 1rem auto',
               border: '1px solid #fecaca',
               borderRadius: '8px',
               padding: '1rem',
-              marginBottom: '2rem'
+              marginBottom: '1rem'
             }}>
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem'
+                gap: '0.5rem',
+                marginBottom: '0.5rem'
               }}>
                 <AlertCircle size={20} color="#dc2626" />
                 <span style={{
@@ -920,14 +850,303 @@ margin: '0 auto 1rem auto',
                   fontWeight: '600',
                   fontFamily: 'Lexend, sans-serif'
                 }}>
-                  {error.message}
+                  Error
                 </span>
               </div>
+              <p style={{
+                color: '#7f1d1d',
+                fontSize: '0.875rem',
+                fontFamily: 'Lexend, sans-serif',
+                margin: 0,
+                marginBottom: error.canRetry ? '1rem' : 0
+              }}>
+                {error.message}
+              </p>
+              {error.canRetry && (
+                <button
+                  onClick={handleRetry}
+                  style={{
+                    backgroundColor: '#dc2626',
+                    color: 'white',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '6px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem',
+                    fontWeight: '500',
+                    fontFamily: 'Lexend, sans-serif',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  Retry {retryCount > 0 && `(Attempt ${retryCount + 1})`}
+                </button>
+              )}
             </div>
           )}
           
-          <div>
-            {ideas.map((idea, index) => (
+          <button
+            onClick={() => handleGenerateIdeas(false)}
+            disabled={!userInput.trim() || isGenerating}
+            style={{
+              width: '100%',
+              backgroundColor: isGenerating || !userInput.trim() ? '#cbd5e0' : '#ff7a59',
+              color: 'white',
+              fontWeight: '600',
+              padding: '1.25rem 1.5rem',
+              borderRadius: '8px',
+              border: 'none',
+              cursor: isGenerating || !userInput.trim() ? 'not-allowed' : 'pointer',
+              fontSize: '1.125rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.75rem',
+              transition: 'all 0.2s ease',
+              fontFamily: 'Lexend, sans-serif'
+            }}
+            onMouseOver={(e) => {
+              if (!isGenerating && userInput.trim()) {
+                e.target.style.backgroundColor = '#ff5722';
+              }
+            }}
+            onMouseOut={(e) => {
+              if (!isGenerating && userInput.trim()) {
+                e.target.style.backgroundColor = '#ff7a59';
+              }
+            }}
+          >
+            {isGenerating ? (
+              <>
+                <span className="typing-dots" style={{ 
+                  fontSize: '22px',
+                  letterSpacing: '4px'
+                }}>
+                  <span>•</span>
+                  <span>•</span>
+                  <span>•</span>
+                </span>
+                Generating 7 Ideas...
+              </>
+            ) : (
+              <>
+                <Zap size={22} />
+                {ideas.length > 0 ? 'Generate New Ideas' : 'Get 7 Strategic Ideas'}
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+const sortedIdeas = getSortedIdeas(ideas, sortOption);
+
+return (
+  <>
+    <style>{styles}</style>
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #fff7ed 0%, #eff6ff 100%)',
+      padding: '1rem',
+      fontFamily: 'Lexend, sans-serif'
+    }}>
+      <div className="fade-in-up" style={{
+        maxWidth: '64rem',
+        margin: '0 auto',
+        background: 'white',
+        borderRadius: '8px',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+        padding: '2rem'
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '2rem'
+        }}>
+          <h1 style={{
+            fontSize: '1.75rem',
+            fontWeight: '600',
+            color: '#2d3748',
+            fontFamily: 'Lexend, sans-serif'
+          }}>
+            Your 7 Strategic Ideas
+          </h1>
+          <div style={{ display: 'flex', gap: '1rem' }}>
+            <div
+              onClick={editPrompt}
+              style={{
+                backgroundColor: '#64748b',
+                color: 'white',
+                padding: '0.875rem 1.5rem',
+                borderRadius: '8px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                fontFamily: 'Lexend, sans-serif',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '1rem'
+              }}
+              onMouseOver={(e) => {
+                e.target.style.backgroundColor = '#475569';
+                e.target.style.transform = 'translateY(-1px)';
+              }}
+              onMouseOut={(e) => {
+                e.target.style.backgroundColor = '#64748b';
+                e.target.style.transform = 'translateY(0px)';
+              }}
+            >
+              <Settings size={18} />
+              Edit Prompt
+            </div>
+            <div
+              onClick={resetToInput}
+              style={{
+                backgroundColor: '#ff7a59',
+                color: 'white',
+                padding: '0.875rem 1.5rem',
+                borderRadius: '8px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                fontFamily: 'Lexend, sans-serif',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '1rem'
+              }}
+              onMouseOver={(e) => {
+                e.target.style.backgroundColor = '#ff5722';
+                e.target.style.transform = 'translateY(-1px)';
+              }}
+              onMouseOut={(e) => {
+                e.target.style.backgroundColor = '#ff7a59';
+                e.target.style.transform = 'translateY(0px)';
+              }}
+            >
+              <ArrowLeft size={18} />
+              New Prompt
+            </div>
+          </div>
+        </div>
+
+        {/* Simplified Sort Controls */}
+        <div className="fade-in-up" style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '1.5rem',
+          paddingBottom: '1rem',
+          borderBottom: '1px solid #f1f5f9'
+        }}>
+          <div style={{
+            color: '#64748b',
+            fontSize: '0.875rem',
+            fontFamily: 'Lexend, sans-serif'
+          }}>
+            {ideas.length} strategic ideas generated
+          </div>
+          <select
+            value={sortOption}
+            onChange={(e) => setSortOption(e.target.value)}
+            style={{
+              padding: '0.5rem 0.75rem',
+              border: '1px solid #e2e8f0',
+              borderRadius: '6px',
+              fontSize: '0.875rem',
+              color: '#2d3748',
+              outline: 'none',
+              fontFamily: 'Lexend, sans-serif',
+              backgroundColor: 'white',
+              cursor: 'pointer',
+              minWidth: '200px'
+            }}
+          >
+            {SORT_OPTIONS.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        
+        {/* Show original prompt */}
+        <div className="fade-in-up" style={{
+          backgroundColor: '#f8fafc',
+          border: '1px solid #e2e8f0',
+          borderRadius: '8px',
+          padding: '1.5rem',
+          marginBottom: '2rem'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            marginBottom: '0.75rem'
+          }}>
+            <div style={{
+              width: '6px',
+              height: '6px',
+              borderRadius: '50%',
+              backgroundColor: '#64748b'
+            }}></div>
+            <span style={{
+              color: '#64748b',
+              fontWeight: '600',
+              fontSize: '0.875rem',
+              fontFamily: 'Lexend, sans-serif',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              Original Prompt
+            </span>
+          </div>
+          <p style={{
+            color: '#475569',
+            fontSize: '1rem',
+            margin: 0,
+            fontFamily: 'Lexend, sans-serif',
+            lineHeight: '1.5',
+            fontStyle: 'italic'
+          }}>
+            "{userInput}"
+          </p>
+        </div>
+        
+        {error && (
+          <div className="fade-in-up" style={{
+            backgroundColor: '#fef2f2',
+            border: '1px solid #fecaca',
+            borderRadius: '8px',
+            padding: '1rem',
+            marginBottom: '2rem'
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}>
+              <AlertCircle size={20} color="#dc2626" />
+              <span style={{
+                color: '#dc2626',
+                fontWeight: '600',
+                fontFamily: 'Lexend, sans-serif'
+              }}>
+                {error.message}
+              </span>
+            </div>
+          </div>
+        )}
+        
+        <div>
+          {sortedIdeas.map((idea, index) => {
+            const impactScore = extractImpactScore(idea.expectedResult);
+            const complexityScore = estimateComplexity(idea.idea);
+            
+            return (
               <div key={idea.id} className="fade-in-up card-hover" style={{
                 border: '1px solid #e1e8ed',
                 borderRadius: '6px',
@@ -960,10 +1179,40 @@ margin: '0 auto 1rem auto',
                         margin: 0,
                         fontSize: '1.125rem',
                         fontFamily: 'Lexend, sans-serif',
-                        fontWeight: '500'
+                        fontWeight: '500',
+                        marginBottom: '0.75rem'
                       }}>
                         {idea.idea}
                       </p>
+                      
+                      {/* Simplified Impact & Complexity Indicators */}
+                      <div style={{
+                        display: 'flex',
+                        gap: '0.75rem',
+                        marginBottom: '0.75rem'
+                      }}>
+                        <span style={{
+                          fontSize: '0.75rem',
+                          color: '#64748b',
+                          fontFamily: 'Lexend, sans-serif',
+                          backgroundColor: '#f1f5f9',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '0.25rem'
+                        }}>
+                          Impact: {impactScore}%
+                        </span>
+                        <span style={{
+                          fontSize: '0.75rem',
+                          color: '#64748b',
+                          fontFamily: 'Lexend, sans-serif',
+                          backgroundColor: '#f1f5f9',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '0.25rem'
+                        }}>
+                          Complexity: {complexityScore}/10
+                        </span>
+                      </div>
+
                       <button
                         onClick={() => copyIdeaToClipboard(idea.id)}
                         style={{
@@ -978,7 +1227,6 @@ margin: '0 auto 1rem auto',
                           display: 'flex',
                           alignItems: 'center',
                           gap: '0.25rem',
-                          marginTop: '0.75rem',
                           transition: 'all 0.3s ease',
                           fontFamily: 'Lexend, sans-serif'
                         }}
@@ -1047,13 +1295,100 @@ margin: '0 auto 1rem auto',
                       fontSize: '0.875rem',
                       margin: 0,
                       fontFamily: 'Lexend, sans-serif',
-                      lineHeight: '1.4'
+                      lineHeight: '1.4',
+                      marginBottom: idea.sources ? '0.5rem' : 0
                     }}>
                       {idea.expectedResult}
                     </p>
+                    {/* Simplified Source citations */}
+                    {idea.sources && idea.sources.length > 0 && (
+                      <div style={{ 
+                        marginTop: '0.5rem',
+                        fontSize: '0.7rem',
+                        color: '#94a3b8',
+                        fontFamily: 'Lexend, sans-serif'
+                      }}>
+                        Based on: {idea.sources.join(' • ')}
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {/* Implementation Steps Section */}
+                <div style={{
+                  borderTop: '1px solid #f1f5f9',
+                  paddingTop: '1rem',
+                  marginTop: '1rem'
+                }}>
+                  <div 
+                    onClick={() => toggleImplementationSteps(idea.id)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      cursor: 'pointer',
+                      marginBottom: expandedSteps[idea.id] ? '1rem' : 0,
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    {expandedSteps[idea.id] ? 
+                      <ChevronDown size={16} color="#ff7a59" /> : 
+                      <ChevronRight size={16} color="#ff7a59" />
+                    }
+                    <span style={{
+                      color: '#64748b',
+                      fontSize: '0.875rem',
+                      fontFamily: 'Lexend, sans-serif',
+                      fontWeight: '500'
+                    }}>
+                      HubSpot Implementation Steps
+                    </span>
+                    {loadingSteps[idea.id] && (
+                      <span className="typing-dots" style={{ 
+                        fontSize: '12px',
+                        letterSpacing: '2px',
+                        marginLeft: '0.5rem'
+                      }}>
+                        <span>•</span>
+                        <span>•</span>
+                        <span>•</span>
+                      </span>
+                    )}
+                  </div>
+
+                  {expandedSteps[idea.id] && implementationSteps[idea.id] && (
+                    <div className="implementation-steps fade-in-up">
+                      {implementationSteps[idea.id].map((step, stepIndex) => (
+                        <div key={stepIndex} className="step-item">
+                          <div className="step-number">
+                            {step.stepNumber}
+                          </div>
+                          <div>
+                            <div style={{
+                              fontWeight: '600',
+                              color: '#2d3748',
+                              fontSize: '0.875rem',
+                              fontFamily: 'Lexend, sans-serif',
+                              marginBottom: '0.25rem'
+                            }}>
+                              {step.title}
+                            </div>
+                            <div style={{
+                              color: '#64748b',
+                              fontSize: '0.8rem',
+                              fontFamily: 'Lexend, sans-serif',
+                              lineHeight: '1.4'
+                            }}>
+                              {step.description}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 
+                {/* Refinement Section */}
                 <div style={{
                   borderTop: '1px solid #f1f5f9',
                   paddingTop: '1rem',
@@ -1151,18 +1486,18 @@ margin: '0 auto 1rem auto',
                           }}
                         >
                           {isRefining[idea.id] ? (
-  <>
-    <span className="typing-dots" style={{ 
-fontSize: '16px',
-letterSpacing: '2px'
-}}>
-  <span>•</span>
-  <span>•</span>
-  <span>•</span>
-</span>
-Refining...
-  </>
-) : (
+                            <>
+                              <span className="typing-dots" style={{ 
+                                fontSize: '16px',
+                                letterSpacing: '2px'
+                              }}>
+                                <span>•</span>
+                                <span>•</span>
+                                <span>•</span>
+                              </span>
+                              Refining...
+                            </>
+                          ) : (
                             <>
                               <Send size={16} />
                               Refine
@@ -1174,12 +1509,13 @@ Refining...
                   </details>
                 </div>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </div>
-    </>
-  );
+    </div>
+  </>
+);
 }
 
 export default App;
