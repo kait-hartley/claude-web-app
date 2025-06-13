@@ -333,7 +333,7 @@ async function analyzeUploadedFiles(files) {
   return analysis;
 }
 
-// UPDATED: Enhanced idea generation - NOW GENERATES 7 IDEAS with Success Probability
+// UPDATED: Enhanced idea generation - NOW GENERATES 7 IDEAS
 app.post('/api/generate-ideas', upload.array('files'), async (req, res) => {
   try {
     const { userInput, selectedKPI, customKPI } = req.body;
@@ -459,24 +459,14 @@ UNIVERSAL REQUIREMENTS FOR ALL 7 IDEAS:
 
 6. CONVERSATIONAL MARKETING TEAM FRIENDLY: Consider ideas that align with team expertise in chat optimization, bot management, and conversation experience design
 
-SUCCESS PROBABILITY CALIBRATION:
-Generate specific, confident success probability assessments using this format:
-- [Confidence Level] confidence - [X%] success likelihood based on '[Specific Bot/Experiment Name]' which achieved [Y%] improvement in [metric]. Pattern matches: [specific matching factors].
-
-Base assessments on proven experiment patterns:
-- Bot378 Salesbot (Onsite | EN | Partners): 97% deflection improvement, 76.5% success rate
-- Bot406 Demo RFF (Mobile | EN | Trial): 45% demo conversion boost, 80% success rate  
-- Bot362 Quick Replies (Homepage | Multi-language): 120% engagement increase, 83.3% success rate
-- Clay Automation Motion: +46% domain growth, +32% meetings booked
-- ISC Low Pro Pilot: 31% close rate across 4 deals
-- Sales Assist Phase 1: 81% tagging accuracy improvement
-
-Target current performance gaps:
-- QL Volume Recovery: -4% MoM, -26% YoY decline needs reversal
-- Chat Engagement: -2% MoM bot volume decline needs improvement  
-- Tagging Accuracy: 78.3% to 90% goal improvement needed
-- Digital Channel: Build on 180% MRR attainment success
+EXPECTED RESULTS CALIBRATION:
+Base estimates on current team performance context:
+- QL Volume Recovery: Target ideas that could help reverse -4% MoM, -26% YoY decline
+- Chat Engagement: Ideas to reverse -2% MoM bot chat volume decline
+- Tagging Accuracy: Improvements toward 90% goal (from current 78.3%)
+- Digital Channel Optimization: Build on 180% MRR attainment success
 - Deflection Rate: Maintain/improve current 76% performance
+- Self-Service Progression: Ideas supporting journey to 30%+ self-service MRR
 
 PRIORITY ALIGNMENT:
 Every idea must directly address at least one current performance challenge:
@@ -491,8 +481,8 @@ JSON format:
   "ideas": [
     {
       "idea": "[~40 words addressing specific current performance challenge using exact user terminology, implementable via HubSpot ChatFlow]",
-      "successProbability": "[High/Medium/Low] confidence - [X%] success likelihood based on '[Specific Bot/Experiment Name]' which achieved [Y%] improvement in [metric]. Pattern matches: [specific targeting strategy/implementation approach]. Risk factors: [potential challenges]. Measured via [HubSpot tracking method].",
-      "sources": ["[Specific Experiment Name with Success Rate](https://internal-experiment-link)", "HubSpot [specific ChatFlow feature](https://knowledge.hubspot.com/chatflows)", "[Proven Pattern]: [X%] success rate across [Y] experiments"]
+      "expectedResult": "[X-Y%] improvement in [specific current metric] addressing [current performance gap], measured through [HubSpot tracking method]",
+      "sources": ["HubSpot [specific feature/integration]", "Current team performance pattern [specific success area]"]
     }
   ]
 }
@@ -527,8 +517,8 @@ Generate 7 ideas that feel custom-created for their exact challenge, with each i
       ideas = { 
         ideas: [{ 
           idea: "Error parsing AI response - please provide more specific conversational marketing context and try again.", 
-          successProbability: "Unable to generate success probability assessment without clear input context and experiment matching",
-          sources: ["System error", "Please retry with more specific input"]
+          expectedResult: "Unable to generate experiment recommendations without clear input context",
+          sources: ["System error"]
         }] 
       };
     }
@@ -543,12 +533,12 @@ Generate 7 ideas that feel custom-created for their exact challenge, with each i
 // NEW: Implementation Steps API endpoint
 app.post('/api/implementation-steps', async (req, res) => {
   try {
-    const { idea, successProbability, originalUserInput } = req.body;
+    const { idea, expectedResult, originalUserInput } = req.body;
     
     const prompt = `You are a HubSpot conversational marketing implementation expert. Generate exactly 4 high-level, HubSpot-tool-specific implementation steps for this experiment idea.
 
 EXPERIMENT IDEA: "${idea}"
-SUCCESS PROBABILITY: "${successProbability}"
+EXPECTED RESULT: "${expectedResult}"
 ORIGINAL CONTEXT: "${originalUserInput}"
 
 HUBSPOT CHATFLOW IMPLEMENTATION CAPABILITIES:
@@ -631,13 +621,13 @@ Generate practical HubSpot implementation steps that convert this experiment ide
 // Enhanced refinement with HubSpot capabilities context
 app.post('/api/refine-idea-custom', async (req, res) => {
   try {
-    const { idea, successProbability, customRefinement, originalUserInput } = req.body;
+    const { idea, expectedResult, customRefinement, originalUserInput } = req.body;
     
     const prompt = `You are the lead HubSpot conversational marketing strategist refining an experiment idea based on the team's 94-experiment library knowledge and current HubSpot ChatFlow capabilities.
 
 ORIGINAL CONTEXT: "${originalUserInput}"
 CURRENT IDEA: "${idea}"
-CURRENT SUCCESS PROBABILITY: "${successProbability}"
+CURRENT EXPECTED RESULT: "${expectedResult}"
 REFINEMENT REQUEST: "${customRefinement}"
 
 HUBSPOT CHATFLOW CONSTRAINTS:
@@ -663,8 +653,8 @@ The refined idea should be achievable through HubSpot's current ChatFlow capabil
 JSON format:
 {
   "idea": "[Refined ~40 words using their exact terminology, implementable via HubSpot ChatFlow]",
-  "successProbability": "[High/Medium/Low] confidence - [X%] success likelihood based on '[Specific Bot/Experiment Name]' which achieved [Y%] improvement in [metric]. Pattern matches: [refined considerations]. Risk factors: [updated challenges]. Measured via [HubSpot tracking].",
-  "sources": ["[Specific Experiment](https://experiment-link)", "HubSpot [specific feature](https://knowledge.hubspot.com)", "[Pattern]: [X%] success rate"]
+  "expectedResult": "[Updated percentage] improvement in [their specific metric] based on [relevant experiment pattern], measured through [HubSpot tracking]",
+  "sources": ["HubSpot [specific feature]", "Experiment library [pattern]"]
 }`;
 
     const response = await anthropic.messages.create({
@@ -693,7 +683,7 @@ JSON format:
       console.error('JSON parsing error in refinement:', parseError);
       refinedIdea = { 
         idea: idea, 
-        successProbability: successProbability,
+        expectedResult: expectedResult,
         sources: ["System error"]
       };
     }
@@ -708,26 +698,26 @@ JSON format:
 // Keep original refinement endpoint for backward compatibility
 app.post('/api/refine-idea', async (req, res) => {
   try {
-    const { idea, successProbability, refinementType } = req.body;
+    const { idea, expectedResult, refinementType } = req.body;
     
     let prompt = `You are a HubSpot conversational marketing strategist with knowledge of 94 team experiments and current ChatFlow capabilities. `;
     
     switch(refinementType) {
       case 'clearer':
-        prompt += `Make this experiment concept clearer and more specific while targeting ~40 words and ensuring HubSpot ChatFlow implementability: "${idea}" with success probability: "${successProbability}".`;
+        prompt += `Make this experiment concept clearer and more specific while targeting ~40 words and ensuring HubSpot ChatFlow implementability: "${idea}" with expected result: "${expectedResult}".`;
         break;
       case 'concise':
-        prompt += `Make this experiment more concise while preserving strategic elements and HubSpot implementability: "${idea}" with success probability: "${successProbability}". Target ~40 words.`;
+        prompt += `Make this experiment more concise while preserving strategic elements and HubSpot implementability: "${idea}" with expected result: "${expectedResult}". Target ~40 words.`;
         break;
       case 'detailed':
-        prompt += `Add strategic detail and HubSpot-specific implementation guidance to this experiment: "${idea}" with success probability: "${successProbability}". Target ~40 words.`;
+        prompt += `Add strategic detail and HubSpot-specific implementation guidance to this experiment: "${idea}" with expected result: "${expectedResult}". Target ~40 words.`;
         break;
       case 'better':
-        prompt += `Enhance this experiment strategy for higher impact and HubSpot ChatFlow specificity: "${idea}" with success probability: "${successProbability}". Target ~40 words.`;
+        prompt += `Enhance this experiment strategy for higher impact and HubSpot ChatFlow specificity: "${idea}" with expected result: "${expectedResult}". Target ~40 words.`;
         break;
     }
     
-    prompt += '\n\nEnsure the refined idea is implementable through HubSpot ChatFlow capabilities and avoids the 94 already-tested experiment patterns.\n\nReturn JSON format: {"idea": "refined idea", "successProbability": "[Confidence] confidence - [X%] success likelihood based on [specific experiment/pattern]. Pattern matches: [factors]. Risk factors: [considerations]. Measured via [HubSpot method].", "sources": ["[Experiment Name](link)", "HubSpot [feature](link)", "[Pattern]: [success rate]"]}';
+    prompt += '\n\nEnsure the refined idea is implementable through HubSpot ChatFlow capabilities and avoids the 94 already-tested experiment patterns.\n\nReturn JSON format: {"idea": "refined idea", "expectedResult": "refined result", "sources": ["HubSpot feature", "Experiment pattern"]}';
 
     const response = await anthropic.messages.create({
       model: 'claude-3-5-sonnet-20241022',
@@ -749,11 +739,11 @@ app.post('/api/refine-idea', async (req, res) => {
       if (jsonMatch) {
         refinedIdea = JSON.parse(jsonMatch[0]);
       } else {
-        refinedIdea = { idea: idea, successProbability: successProbability, sources: ["System error"] };
+        refinedIdea = { idea: idea, expectedResult: expectedResult, sources: ["System error"] };
       }
     } catch (parseError) {
       console.error('JSON parsing error:', parseError);
-      refinedIdea = { idea: idea, successProbability: successProbability, sources: ["System error"] };
+      refinedIdea = { idea: idea, expectedResult: expectedResult, sources: ["System error"] };
     }
 
     res.json(refinedIdea);

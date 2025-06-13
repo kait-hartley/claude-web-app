@@ -231,9 +231,9 @@ const styles = `
     }
   `;
 
-// Function to extract impact percentage from successProbability
-const extractImpactScore = (successProbability) => {
-  const match = successProbability.match(/(\d+)-(\d+)%|\b(\d+)%/);
+// Function to extract impact percentage from expectedResult
+const extractImpactScore = (expectedResult) => {
+  const match = expectedResult.match(/(\d+)-(\d+)%|\b(\d+)%/);
   if (match) {
     if (match[1] && match[2]) {
       return (parseInt(match[1]) + parseInt(match[2])) / 2;
@@ -270,7 +270,7 @@ const getSortedIdeas = (ideas, sortOption) => {
   
   switch (sortOption) {
     case 'impact_high':
-      return sortedIdeas.sort((a, b) => extractImpactScore(b.successProbability) - extractImpactScore(a.successProbability));
+      return sortedIdeas.sort((a, b) => extractImpactScore(b.expectedResult) - extractImpactScore(a.expectedResult));
     
     case 'complexity_simple':
       return sortedIdeas.sort((a, b) => estimateComplexity(a.idea) - estimateComplexity(b.idea));
@@ -278,16 +278,16 @@ const getSortedIdeas = (ideas, sortOption) => {
     case 'quick_wins':
       // High impact, low complexity
       return sortedIdeas.sort((a, b) => {
-        const aScore = extractImpactScore(a.successProbability) - estimateComplexity(a.idea);
-        const bScore = extractImpactScore(b.successProbability) - estimateComplexity(b.idea);
+        const aScore = extractImpactScore(a.expectedResult) - estimateComplexity(a.idea);
+        const bScore = extractImpactScore(b.expectedResult) - estimateComplexity(b.idea);
         return bScore - aScore;
       });
     
     case 'time_to_results':
       // Ideas with faster implementation and quicker results
       return sortedIdeas.sort((a, b) => {
-        const aTimeScore = getTimeToResults(a.idea, a.successProbability);
-        const bTimeScore = getTimeToResults(b.idea, b.successProbability);
+        const aTimeScore = getTimeToResults(a.idea, a.expectedResult);
+        const bTimeScore = getTimeToResults(b.idea, b.expectedResult);
         return aTimeScore - bTimeScore;
       });
     
@@ -313,20 +313,20 @@ const getSortedIdeas = (ideas, sortOption) => {
 };
 
 // Helper function to estimate time to results
-const getTimeToResults = (idea, successProbability) => {
+const getTimeToResults = (idea, expectedResult) => {
   const quickKeywords = ['quick', 'immediate', 'instant', 'simple', 'basic', 'toggle', 'enable'];
   const slowKeywords = ['complex', 'integration', 'advanced', 'multiple', 'workflow', 'training'];
   
   let timeScore = 5; // Default medium time
   
   quickKeywords.forEach(keyword => {
-    if (idea.toLowerCase().includes(keyword) || successProbability.toLowerCase().includes(keyword)) {
+    if (idea.toLowerCase().includes(keyword) || expectedResult.toLowerCase().includes(keyword)) {
       timeScore -= 2;
     }
   });
   
   slowKeywords.forEach(keyword => {
-    if (idea.toLowerCase().includes(keyword) || successProbability.toLowerCase().includes(keyword)) {
+    if (idea.toLowerCase().includes(keyword) || expectedResult.toLowerCase().includes(keyword)) {
       timeScore += 2;
     }
   });
@@ -383,7 +383,7 @@ const fetchImplementationSteps = async (ideaId) => {
       },
       body: JSON.stringify({
         idea: idea.idea,
-        successProbability: idea.successProbability,
+        expectedResult: idea.expectedResult,
         originalUserInput: userInput
       }),
     });
@@ -519,7 +519,7 @@ const refineIdeaWithCustomInput = async (ideaId) => {
       },
       body: JSON.stringify({
         idea: ideaToRefine.idea,
-        successProbability: ideaToRefine.successProbability,
+        expectedResult: ideaToRefine.expectedResult,
         customRefinement: customInput,
         originalUserInput: userInput
       }),
@@ -1231,7 +1231,7 @@ return (
         
         <div>
           {sortedIdeas.map((idea, index) => {
-            const impactScore = extractImpactScore(idea.successProbability);
+            const impactScore = extractImpactScore(idea.expectedResult);
             const complexityScore = estimateComplexity(idea.idea);
             
             return (
@@ -1375,7 +1375,7 @@ return (
                         textTransform: 'uppercase',
                         letterSpacing: '0.5px'
                       }}>
-                        Success Probability
+                        Expected Impact
                       </span>
                     </div>
                     <p style={{
@@ -1384,49 +1384,19 @@ return (
                       margin: 0,
                       fontFamily: 'Lexend, sans-serif',
                       lineHeight: '1.4',
-                      marginBottom: '0.5rem'
+                      marginBottom: idea.sources ? '0.5rem' : 0
                     }}>
-                      {idea.successProbability}
+                      {idea.expectedResult}
                     </p>
-                    {/* Sources within Success Probability section */}
-                    {idea.sources && (
+                    {/* Simplified Source citations */}
+                    {idea.sources && idea.sources.length > 0 && (
                       <div style={{ 
+                        marginTop: '0.5rem',
                         fontSize: '0.7rem',
                         color: '#94a3b8',
                         fontFamily: 'Lexend, sans-serif'
                       }}>
-                        Based on: {idea.sources.map((source, index) => {
-                          // Check for markdown link format [title](url)
-                          const markdownMatch = source.match(/\[([^\]]+)\]\(([^)]+)\)/);
-                          if (markdownMatch) {
-                            const linkText = markdownMatch[1];
-                            const url = markdownMatch[2];
-                            return (
-                              <span key={index}>
-                                {index > 0 && ' • '}
-                                <a 
-                                  href={url} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  style={{
-                                    color: '#3b82f6',
-                                    textDecoration: 'underline',
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  {linkText}
-                                </a>
-                              </span>
-                            );
-                          } else {
-                            return (
-                              <span key={index}>
-                                {index > 0 && ' • '}
-                                {source}
-                              </span>
-                            );
-                          }
-                        })}
+                        Based on: {idea.sources.join(' • ')}
                       </div>
                     )}
                   </div>
