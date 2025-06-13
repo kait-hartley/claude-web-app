@@ -29,7 +29,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
 });
 
-// Real-time Team Context from 2025 Marketing-ISC Performance Readout
+// UPDATED: Real-time Team Context from 2025 Marketing-ISC Performance Readout
 const CURRENT_TEAM_CONTEXT = {
   active_strategic_initiatives: {
     'ISC_Closing_Low_Pro_Pilot': {
@@ -129,7 +129,6 @@ const CURRENT_TEAM_CONTEXT = {
     'Automation + human hybrid approaches (following Clay success pattern)'
   ]
 };
-
 const EXPERIMENT_LIBRARY_CONTEXT = {
   total_experiments: 94,
   success_rate: 55.3,
@@ -277,7 +276,7 @@ const KPI_CONTEXT = {
   }
 };
 
-// File processing function
+// File processing function (unchanged)
 async function analyzeUploadedFiles(files) {
   const analysis = {
     previousExperiments: [],
@@ -334,7 +333,7 @@ async function analyzeUploadedFiles(files) {
   return analysis;
 }
 
-// Enhanced idea generation - NOW GENERATES 7 IDEAS with real-time team context
+// UPDATED: Enhanced idea generation - NOW GENERATES 7 IDEAS
 app.post('/api/generate-ideas', upload.array('files'), async (req, res) => {
   try {
     const { userInput, selectedKPI, customKPI } = req.body;
@@ -426,54 +425,20 @@ Each idea MUST directly address specific parts of their input using their EXACT 
 
 UNIVERSAL REQUIREMENTS FOR ALL 7 IDEAS:
 
-1. NEVER-TESTED IDEAS: Build on proven patterns but explore untested angles, combinations, or applications that avoid the 94 already-tested experiments
+1. NEVER-TESTED BUT IMPLEMENTABLE: Build on proven patterns but explore untested angles that are achievable with current team bandwidth and technical capabilities
 
-2. HUBSPOT-IMPLEMENTABLE: Each idea must be achievable using current HubSpot ChatFlow capabilities and integrations listed above
+2. LOW-TO-MEDIUM COMPLEXITY FOCUS: Prioritize ideas that can be implemented without extensive development, training, or multi-team coordination
 
-3. HYPER-RELEVANT TARGETING: Feel custom-written for their exact situation using their specific terminology
+3. HUBSPOT-NATIVE SOLUTIONS: Each idea must be achievable using current HubSpot ChatFlow capabilities and standard integrations
 
-4. CONCISE CONSISTENCY: Target ~40 words with natural variation (35-45 words)
+4. HYPER-RELEVANT TARGETING: Feel custom-written for their exact situation using their specific terminology
 
-5. COMPREHENSIVE COVERAGE: Collectively address every aspect of their input across the 7 ideas
+5. QUICK-TO-MODERATE IMPLEMENTATION: Target ideas that can show results within 2-8 weeks, not months
 
-SUCCESSFUL EXPERIMENT REFERENCE LIBRARY:
-Use these actual experiment document names in sources when relevant:
-
-Demo RFF Experiments:
-- "Bot406 CRM Catchall AM - Adding Demo RFF" (145% improvement)
-- "Bot362 Demo Paid LP - Replacing QR Demo with RFF" (625% improvement)
-- "Bot 376 Homepage - Adding QR Book a Demo with RFF"
-
-Salesbot Experiments:
-- "Bot361 adding Gen Ai to Affiliate Marketing CRM Catchall" (7.9% improvement)
-- "Adding Salesbot to Website Themes" (17% improvement)
-- "Bot397 Salesbot - Onsite | EN | Competitive pages" (38.5% improvement)
-- "Bot383 Salesbot - Marketing Catchall AM" (13% improvement)
-- "Bot378 Salesbot: Onsite | EN | Partners" (97% improvement)
-
-BAMIC Experiments:
-- "Bot 407 | Onsite | EN | Contact Sales | GAI | Salesbot | BAMIC" (66.3% improvement)
-- "BOT388 - BAMIC New Module - EN InApp Pricing Pages" (22% improvement)
-- "BAMIC InApp AB Test - EN Pricing Page (All Users) - BOT363" (17% improvement)
-
-Quick Replies Experiments:
-- "Experiment w/ QR on EN Knowledge Base Generative AI" (5.9% improvement)
-- "QR Optimization on InApp | EN | Academy | Generative AI" (17% improvement)
-
-Other Successful Experiments:
-- "Propensity Score for 'Missed by ISC' IQLs Experiment" (148% improvement)
-- "2024 Knowledge Base Analysis" (19% improvement)
-- "2025 Unknown Visitor Project" (5700% improvement)
+6. CONVERSATIONAL MARKETING TEAM FRIENDLY: Consider ideas that align with team expertise in chat optimization, bot management, and conversation experience design
 
 EXPECTED RESULTS CALIBRATION:
-Base estimates on actual experiment library performance data:
-- Salesbot implementations: 6-35% deflection improvement (76.5% success rate across 17 experiments)
-- BAMIC optimization: 15-45% meeting booking improvement (53.3% success rate across 15 experiments)  
-- Quick Replies enhancement: 20-120% engagement improvement (83.3% success rate across 6 experiments)
-- Demo RFF improvements: 37-625% demo conversion improvement (80% success rate across 5 experiments)
-- Self Service Bot: 10-25% deflection improvement (47.4% success rate across 19 experiments)
-
-Current team performance context:
+Base estimates on current team performance context:
 - QL Volume Recovery: Target ideas that could help reverse -4% MoM, -26% YoY decline
 - Chat Engagement: Ideas to reverse -2% MoM bot chat volume decline
 - Tagging Accuracy: Improvements toward 90% goal (from current 78.3%)
@@ -494,8 +459,8 @@ JSON format:
   "ideas": [
     {
       "idea": "[~40 words addressing specific current performance challenge using exact user terminology, implementable via HubSpot ChatFlow]",
-      "expectedResult": "[X-Y%] improvement in [specific current metric] based on [specific experiment library pattern with success rate], addressing [current performance gap]",
-      "sources": ["Experiment: [specific successful experiment document name from library]", "HubSpot ChatFlow: [specific feature/integration]"]
+      "expectedResult": "[X-Y%] improvement in [specific current metric] addressing [current performance gap], measured through [HubSpot tracking method]",
+      "sources": ["HubSpot [specific feature/integration]", "Current team performance pattern [specific success area]"]
     }
   ]
 }
@@ -543,12 +508,12 @@ Generate 7 ideas that feel custom-created for their exact needs while directly a
   }
 });
 
-// Implementation Steps API endpoint
+// NEW: Implementation Steps API endpoint
 app.post('/api/implementation-steps', async (req, res) => {
   try {
     const { idea, expectedResult, originalUserInput } = req.body;
     
-    const prompt = `You are a HubSpot conversational marketing implementation expert. Generate 4-5 high-level, HubSpot-tool-specific implementation steps for this experiment idea.
+    const prompt = `You are a HubSpot conversational marketing implementation expert. Generate exactly 4 high-level, HubSpot-tool-specific implementation steps for this experiment idea.
 
 EXPERIMENT IDEA: "${idea}"
 EXPECTED RESULT: "${expectedResult}"
@@ -567,7 +532,7 @@ IMPLEMENTATION STEP GUIDELINES:
 1. HubSpot-Tool-Specific: Reference actual HubSpot features and navigation paths
 2. High-Level but Actionable: Strategic steps that can be executed
 3. Sequential Order: Steps should build logically from setup to launch
-4. 4-5 Steps Maximum: Keep it focused and achievable
+4. Maximum 4 Steps: Keep it focused and achievable - no more than 4 steps total
 5. Include Testing: Always include a testing/validation step
 
 STEP FORMAT:
@@ -636,15 +601,12 @@ app.post('/api/refine-idea-custom', async (req, res) => {
   try {
     const { idea, expectedResult, customRefinement, originalUserInput } = req.body;
     
-    const prompt = `You are the lead HubSpot conversational marketing strategist refining an experiment idea based on the team's 94-experiment library knowledge, current 2025 performance context, and HubSpot ChatFlow capabilities.
+    const prompt = `You are the lead HubSpot conversational marketing strategist refining an experiment idea based on the team's 94-experiment library knowledge and current HubSpot ChatFlow capabilities.
 
 ORIGINAL CONTEXT: "${originalUserInput}"
 CURRENT IDEA: "${idea}"
 CURRENT EXPECTED RESULT: "${expectedResult}"
 REFINEMENT REQUEST: "${customRefinement}"
-
-CURRENT PERFORMANCE CONTEXT:
-${CURRENT_TEAM_CONTEXT.priority_problem_areas.join('\n- ')}
 
 HUBSPOT CHATFLOW CONSTRAINTS:
 ${EXPERIMENT_LIBRARY_CONTEXT.limitations_constraints.join('\n- ')}
@@ -657,24 +619,20 @@ AVAILABLE HUBSPOT CAPABILITIES:
 NEVER SUGGEST these already-tested patterns:
 ${EXPERIMENT_LIBRARY_CONTEXT.extensively_tested_avoid.join('\n- ')}
 
-ACTIVE WORK CONSTRAINTS:
-${CURRENT_TEAM_CONTEXT.avoid_suggesting_active_work.join('\n- ')}
-
 REFINEMENT PRINCIPLES:
 1. Maintain HubSpot implementability using available ChatFlow features
 2. Use exact terminology from both original input and refinement request
 3. Preserve concise clarity (~40 words, 35-45 range)
-4. Avoid the 94 already-tested experiment variations and active work
+4. Avoid the 94 already-tested experiment variations
 5. Address both original needs AND refinement request cohesively
-6. Align with current performance priorities (QL volume recovery, chat engagement, etc.)
 
-The refined idea should be achievable through HubSpot's current ChatFlow capabilities while incorporating their specific refinement request and addressing current team performance challenges.
+The refined idea should be achievable through HubSpot's current ChatFlow capabilities while incorporating their specific refinement request.
 
 JSON format:
 {
-  "idea": "[Refined ~40 words using their exact terminology, implementable via HubSpot ChatFlow, addressing current performance challenges]",
-  "expectedResult": "[Updated percentage] improvement in [their specific metric] addressing [current performance gap], measured through [HubSpot tracking]",
-  "sources": ["HubSpot [specific feature]", "Current team performance pattern [specific area]"]
+  "idea": "[Refined ~40 words using their exact terminology, implementable via HubSpot ChatFlow]",
+  "expectedResult": "[Updated percentage] improvement in [their specific metric] based on [relevant experiment pattern], measured through [HubSpot tracking]",
+  "sources": ["HubSpot [specific feature]", "Experiment library [pattern]"]
 }`;
 
     const response = await anthropic.messages.create({
@@ -720,7 +678,7 @@ app.post('/api/refine-idea', async (req, res) => {
   try {
     const { idea, expectedResult, refinementType } = req.body;
     
-    let prompt = `You are a HubSpot conversational marketing strategist with knowledge of 94 team experiments, current 2025 performance context, and ChatFlow capabilities. `;
+    let prompt = `You are a HubSpot conversational marketing strategist with knowledge of 94 team experiments and current ChatFlow capabilities. `;
     
     switch(refinementType) {
       case 'clearer':
@@ -737,9 +695,7 @@ app.post('/api/refine-idea', async (req, res) => {
         break;
     }
     
-    prompt += `\n\nEnsure the refined idea is implementable through HubSpot ChatFlow capabilities, avoids the 94+ already-tested experiment patterns and active work, and addresses current team performance challenges.
-
-Return JSON format: {"idea": "refined idea", "expectedResult": "refined result", "sources": ["HubSpot feature", "Performance pattern"]}`;
+    prompt += '\n\nEnsure the refined idea is implementable through HubSpot ChatFlow capabilities and avoids the 94 already-tested experiment patterns.\n\nReturn JSON format: {"idea": "refined idea", "expectedResult": "refined result", "sources": ["HubSpot feature", "Experiment pattern"]}';
 
     const response = await anthropic.messages.create({
       model: 'claude-3-5-sonnet-20241022',
@@ -776,8 +732,6 @@ Return JSON format: {"idea": "refined idea", "expectedResult": "refined result",
 });
 
 app.listen(port, () => {
-  console.log(`🚀 HubSpot Conversational Marketing Experiment Generator running on http://localhost:${port}`);
-  console.log(`📊 Enhanced with 94-experiment library + real-time June 2025 performance data`);
-  console.log(`🎯 Targeting: QL volume recovery, chat engagement, tagging accuracy improvements`);
-  console.log(`🔧 HubSpot ChatFlow capabilities integrated for immediate implementation`);
+  console.log(`HubSpot Conversational Marketing Experiment Generator running on http://localhost:${port}`);
+  console.log(`Enhanced with 94-experiment library knowledge and current HubSpot ChatFlow capabilities`);
 });

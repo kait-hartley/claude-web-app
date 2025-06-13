@@ -112,10 +112,12 @@ const KPI_OPTIONS = [
 // Sort options for ideas
 const SORT_OPTIONS = [
   { value: '', label: 'Default Order' },
-  { value: 'impact_high', label: 'Highest Impact First' },
-  { value: 'impact_low', label: 'Lowest Impact First' },
-  { value: 'complexity_simple', label: 'Simplest Implementation First' },
-  { value: 'complexity_complex', label: 'Most Complex First' }
+  { value: 'impact_high', label: 'Highest Impact' },
+  { value: 'complexity_simple', label: 'Easiest to Implement' },
+  { value: 'quick_wins', label: 'Quick Wins (High Impact, Low Effort)' },
+  { value: 'time_to_results', label: 'Fastest Time to Results' },
+  { value: 'team_bandwidth', label: 'Lowest Team Bandwidth' },
+  { value: 'proven_patterns', label: 'Most Proven Success Pattern' }
 ];
 
 const styles = `
@@ -269,15 +271,101 @@ const getSortedIdeas = (ideas, sortOption) => {
   switch (sortOption) {
     case 'impact_high':
       return sortedIdeas.sort((a, b) => extractImpactScore(b.expectedResult) - extractImpactScore(a.expectedResult));
-    case 'impact_low':
-      return sortedIdeas.sort((a, b) => extractImpactScore(a.expectedResult) - extractImpactScore(b.expectedResult));
+    
     case 'complexity_simple':
       return sortedIdeas.sort((a, b) => estimateComplexity(a.idea) - estimateComplexity(b.idea));
-    case 'complexity_complex':
-      return sortedIdeas.sort((a, b) => estimateComplexity(b.idea) - estimateComplexity(a.idea));
+    
+    case 'quick_wins':
+      // High impact, low complexity
+      return sortedIdeas.sort((a, b) => {
+        const aScore = extractImpactScore(a.expectedResult) - estimateComplexity(a.idea);
+        const bScore = extractImpactScore(b.expectedResult) - estimateComplexity(b.idea);
+        return bScore - aScore;
+      });
+    
+    case 'time_to_results':
+      // Ideas with faster implementation and quicker results
+      return sortedIdeas.sort((a, b) => {
+        const aTimeScore = getTimeToResults(a.idea, a.expectedResult);
+        const bTimeScore = getTimeToResults(b.idea, b.expectedResult);
+        return aTimeScore - bTimeScore;
+      });
+    
+    case 'team_bandwidth':
+      // Lowest team resource requirements
+      return sortedIdeas.sort((a, b) => {
+        const aTeamEffort = getTeamBandwidthScore(a.idea);
+        const bTeamEffort = getTeamBandwidthScore(b.idea);
+        return aTeamEffort - bTeamEffort;
+      });
+    
+    case 'proven_patterns':
+      // Ideas based on most successful experiment patterns
+      return sortedIdeas.sort((a, b) => {
+        const aProvenScore = getProvenPatternScore(a.sources);
+        const bProvenScore = getProvenPatternScore(b.sources);
+        return bProvenScore - aProvenScore;
+      });
+    
     default:
       return sortedIdeas;
   }
+};
+
+// Helper function to estimate time to results
+const getTimeToResults = (idea, expectedResult) => {
+  const quickKeywords = ['quick', 'immediate', 'instant', 'simple', 'basic', 'toggle', 'enable'];
+  const slowKeywords = ['complex', 'integration', 'advanced', 'multiple', 'workflow', 'training'];
+  
+  let timeScore = 5; // Default medium time
+  
+  quickKeywords.forEach(keyword => {
+    if (idea.toLowerCase().includes(keyword) || expectedResult.toLowerCase().includes(keyword)) {
+      timeScore -= 2;
+    }
+  });
+  
+  slowKeywords.forEach(keyword => {
+    if (idea.toLowerCase().includes(keyword) || expectedResult.toLowerCase().includes(keyword)) {
+      timeScore += 2;
+    }
+  });
+  
+  return Math.max(1, Math.min(10, timeScore));
+};
+
+// Helper function to estimate team bandwidth requirements
+const getTeamBandwidthScore = (idea) => {
+  const lowEffortKeywords = ['automated', 'self-service', 'template', 'existing', 'simple'];
+  const highEffortKeywords = ['training', 'custom', 'new process', 'coordination', 'multiple teams'];
+  
+  let bandwidthScore = 5; // Default medium bandwidth
+  
+  lowEffortKeywords.forEach(keyword => {
+    if (idea.toLowerCase().includes(keyword)) bandwidthScore -= 2;
+  });
+  
+  highEffortKeywords.forEach(keyword => {
+    if (idea.toLowerCase().includes(keyword)) bandwidthScore += 2;
+  });
+  
+  return Math.max(1, Math.min(10, bandwidthScore));
+};
+
+// Helper function to score based on proven patterns
+const getProvenPatternScore = (sources) => {
+  if (!sources || !Array.isArray(sources)) return 0;
+  
+  let provenScore = 0;
+  sources.forEach(source => {
+    if (source.includes('Bot378') || source.includes('5700%')) provenScore += 10; // Highest performers
+    else if (source.includes('Bot406') || source.includes('Bot362')) provenScore += 8; // Demo RFF successes
+    else if (source.includes('Salesbot') || source.includes('BAMIC')) provenScore += 6; // Proven patterns
+    else if (source.includes('Quick Replies')) provenScore += 5; // Consistent performers
+    else provenScore += 3; // General patterns
+  });
+  
+  return provenScore;
 };
 
 // Function to fetch implementation steps
@@ -1341,7 +1429,7 @@ return (
                       fontFamily: 'Lexend, sans-serif',
                       fontWeight: '500'
                     }}>
-                      HubSpot Implementation Steps
+                      Implementation Steps
                     </span>
                     {loadingSteps[idea.id] && (
                       <span className="typing-dots" style={{ 
