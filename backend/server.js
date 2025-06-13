@@ -423,6 +423,28 @@ Extract EVERY element from their input:
 STEP 2 - DIRECT RESPONSE MAPPING:
 Each idea MUST directly address specific parts of their input using their EXACT terminology and language.
 
+IDEA GENERATION APPROACH:
+
+1. HYPER-TARGETED TO INPUT: Every idea must directly address the specific problem, audience, and context mentioned in the user's input
+
+2. NATURAL VARIETY: Ideas should be different approaches to the SAME core problem - not artificial variety across unrelated areas
+
+3. INPUT-DRIVEN SOLUTIONS: Generate ideas that feel like they were created by someone who deeply understands their exact situation and challenges
+
+4. CONTEXTUAL RELEVANCE: Use their specific terminology, constraints, stakeholders, and success metrics mentioned
+
+5. PROBLEM-CENTRIC: All 7 ideas should attack their stated problem from different angles, not different problems entirely
+
+DISTINCTIVENESS WITHIN CONTEXT:
+- Different implementation approaches to the SAME challenge
+- Different HubSpot tools that could solve THEIR specific problem  
+- Different complexity levels for THEIR stated needs
+- Different measurement approaches for THEIR success metrics
+- Different audience segments within THEIR context
+
+AVOID FORCED PATTERNS:
+Do not artificially force ideas into predetermined categories (Salesbot, BAMIC, etc.) unless they directly address the user's specific input. Every idea should feel custom-built for their exact challenge.
+
 UNIVERSAL REQUIREMENTS FOR ALL 7 IDEAS:
 
 1. NEVER-TESTED BUT IMPLEMENTABLE: Build on proven patterns but explore untested angles that are achievable with current team bandwidth and technical capabilities
@@ -465,12 +487,12 @@ JSON format:
   ]
 }
 
-Generate 7 ideas that feel custom-created for their exact needs while directly addressing your team's current performance challenges and strategic priorities.`;
+Generate 7 ideas that feel custom-created for their exact challenge, with each idea offering a genuinely different approach to solving THEIR specific problem.`;
 
     const response = await anthropic.messages.create({
       model: 'claude-3-5-sonnet-20241022',
       max_tokens: 6000,
-      temperature: 0.8,
+      temperature: 0.85, // Balanced creativity with consistency
       messages: [
         {
           role: 'user',
