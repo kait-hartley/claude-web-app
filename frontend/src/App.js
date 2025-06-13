@@ -1375,7 +1375,7 @@ return (
                         textTransform: 'uppercase',
                         letterSpacing: '0.5px'
                       }}>
-                        Expected Impact
+                        Success Probability
                       </span>
                     </div>
                     <p style={{
@@ -1383,22 +1383,40 @@ return (
                       fontSize: '0.875rem',
                       margin: 0,
                       fontFamily: 'Lexend, sans-serif',
-                      lineHeight: '1.4',
-                      marginBottom: idea.sources ? '0.5rem' : 0
+                      lineHeight: '1.4'
                     }}>
-                      {idea.expectedResult}
+                      {/* Parse and render success probability with embedded links */}
+                      {(() => {
+                        const text = idea.successProbability;
+                        if (!text) return text;
+                        
+                        // Split by markdown links and render appropriately
+                        const parts = text.split(/(\[[^\]]+\]\([^)]+\))/);
+                        return parts.map((part, index) => {
+                          const markdownMatch = part.match(/\[([^\]]+)\]\(([^)]+)\)/);
+                          if (markdownMatch) {
+                            const linkText = markdownMatch[1];
+                            const url = markdownMatch[2];
+                            return (
+                              <a 
+                                key={index}
+                                href={url} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                style={{
+                                  color: '#3b82f6',
+                                  textDecoration: 'underline',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                {linkText}
+                              </a>
+                            );
+                          }
+                          return part;
+                        });
+                      })()}
                     </p>
-                    {/* Simplified Source citations */}
-                    {idea.sources && idea.sources.length > 0 && (
-                      <div style={{ 
-                        marginTop: '0.5rem',
-                        fontSize: '0.7rem',
-                        color: '#94a3b8',
-                        fontFamily: 'Lexend, sans-serif'
-                      }}>
-                        Based on: {idea.sources.join(' • ')}
-                      </div>
-                    )}
                   </div>
                 </div>
 
