@@ -436,8 +436,44 @@ UNIVERSAL REQUIREMENTS FOR ALL 7 IDEAS:
 
 5. COMPREHENSIVE COVERAGE: Collectively address every aspect of their input across the 7 ideas
 
+SUCCESSFUL EXPERIMENT REFERENCE LIBRARY:
+Use these actual experiment document names in sources when relevant:
+
+Demo RFF Experiments:
+- "Bot406 CRM Catchall AM - Adding Demo RFF" (145% improvement)
+- "Bot362 Demo Paid LP - Replacing QR Demo with RFF" (625% improvement)
+- "Bot 376 Homepage - Adding QR Book a Demo with RFF"
+
+Salesbot Experiments:
+- "Bot361 adding Gen Ai to Affiliate Marketing CRM Catchall" (7.9% improvement)
+- "Adding Salesbot to Website Themes" (17% improvement)
+- "Bot397 Salesbot - Onsite | EN | Competitive pages" (38.5% improvement)
+- "Bot383 Salesbot - Marketing Catchall AM" (13% improvement)
+- "Bot378 Salesbot: Onsite | EN | Partners" (97% improvement)
+
+BAMIC Experiments:
+- "Bot 407 | Onsite | EN | Contact Sales | GAI | Salesbot | BAMIC" (66.3% improvement)
+- "BOT388 - BAMIC New Module - EN InApp Pricing Pages" (22% improvement)
+- "BAMIC InApp AB Test - EN Pricing Page (All Users) - BOT363" (17% improvement)
+
+Quick Replies Experiments:
+- "Experiment w/ QR on EN Knowledge Base Generative AI" (5.9% improvement)
+- "QR Optimization on InApp | EN | Academy | Generative AI" (17% improvement)
+
+Other Successful Experiments:
+- "Propensity Score for 'Missed by ISC' IQLs Experiment" (148% improvement)
+- "2024 Knowledge Base Analysis" (19% improvement)
+- "2025 Unknown Visitor Project" (5700% improvement)
+
 EXPECTED RESULTS CALIBRATION:
-Base estimates on current team performance context:
+Base estimates on actual experiment library performance data:
+- Salesbot implementations: 6-35% deflection improvement (76.5% success rate across 17 experiments)
+- BAMIC optimization: 15-45% meeting booking improvement (53.3% success rate across 15 experiments)  
+- Quick Replies enhancement: 20-120% engagement improvement (83.3% success rate across 6 experiments)
+- Demo RFF improvements: 37-625% demo conversion improvement (80% success rate across 5 experiments)
+- Self Service Bot: 10-25% deflection improvement (47.4% success rate across 19 experiments)
+
+Current team performance context:
 - QL Volume Recovery: Target ideas that could help reverse -4% MoM, -26% YoY decline
 - Chat Engagement: Ideas to reverse -2% MoM bot chat volume decline
 - Tagging Accuracy: Improvements toward 90% goal (from current 78.3%)
@@ -458,8 +494,8 @@ JSON format:
   "ideas": [
     {
       "idea": "[~40 words addressing specific current performance challenge using exact user terminology, implementable via HubSpot ChatFlow]",
-      "expectedResult": "[X-Y%] improvement in [specific current metric] addressing [current performance gap], measured through [HubSpot tracking method]",
-      "sources": ["HubSpot [specific feature/integration]", "Current team performance pattern [specific success area]"]
+      "expectedResult": "[X-Y%] improvement in [specific current metric] based on [specific experiment library pattern with success rate], addressing [current performance gap]",
+      "sources": ["Experiment: [specific successful experiment document name from library]", "HubSpot ChatFlow: [specific feature/integration]"]
     }
   ]
 }

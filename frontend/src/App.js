@@ -803,7 +803,7 @@ if (currentScreen === 'input') {
             <textarea
               value={userInput}
               onChange={(e) => setUserInput(e.target.value)}
-              placeholder="Try something like this: Our QL volume is down 26% YoY and chat engagement is declining 2% MoM. Need ideas to reverse this trend that complement our Digital channel success (180% attainment) without interfering with our active ISC Closing pilot."
+              placeholder="Try something like: Our ISC team is spending too much time on low-value conversations while good prospects aren't getting the attention they need. We need better ways to help chat identify and route high-intent visitors to the right people faster."
               style={{
                 width: '100%',
                 padding: '1.25rem',
