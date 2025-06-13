@@ -129,6 +129,7 @@ const CURRENT_TEAM_CONTEXT = {
     'Automation + human hybrid approaches (following Clay success pattern)'
   ]
 };
+
 const EXPERIMENT_LIBRARY_CONTEXT = {
   total_experiments: 94,
   success_rate: 55.3,
@@ -141,7 +142,15 @@ const EXPERIMENT_LIBRARY_CONTEXT = {
       description: 'GenAI integration, TOFU/BOFU implementations, deflection improvements',
       metrics: ['Deflection Rate'],
       typical_impact: '6-35% deflection improvement',
-      hubspot_implementation: 'ChatFlow with Salesbot integration, GenAI knowledge base'
+      hubspot_implementation: 'ChatFlow with Salesbot integration, GenAI knowledge base',
+      example_experiments: [
+        'Bot378 Salesbot: Onsite | EN | Partners',
+        'Bot397 Salesbot - Onsite | EN | Competitive pages',
+        'Bot383 Salesbot - Marketing Catchall AM',
+        'Bot 381 Adding Salesbot to Case Studies chatbot',
+        'BOT 336 | Onsite | EN | Contact Sales | GAI | Salesbot',
+        'BOT 342 | In-App | EN | Paywall Workflows | GAI | Salesbot | All Users'
+      ]
     },
     'Self Service Bot': {
       experiments: 19,
@@ -150,7 +159,15 @@ const EXPERIMENT_LIBRARY_CONTEXT = {
       description: 'Automated responses, FAQ integration, user self-resolution',
       metrics: ['Deflection Rate', 'Pass Rate'],
       typical_impact: '10-25% deflection improvement',
-      hubspot_implementation: 'Knowledge base integration, automated response flows'
+      hubspot_implementation: 'Knowledge base integration, automated response flows',
+      example_experiments: [
+        'Bot 313: Generative AI on Marketing Hub Product Homepage',
+        'Bot 316: Generative AI Catchall on EN Product Pages',
+        'Bot 320: Generative AI on CRM Paid LP (2.0)',
+        'BOT373 - Generative AI on InApp DACH Help-in the Nav',
+        'Generative AI BOT345 Onsite DACH HomePage',
+        'Generative AI BOT355 Onsite Offer Demo Pages'
+      ]
     },
     'BAMIC (Book a Meeting in Chat)': {
       experiments: 15,
@@ -159,7 +176,15 @@ const EXPERIMENT_LIBRARY_CONTEXT = {
       description: 'Meeting booking optimization within chat interface',
       metrics: ['BAMIC CVR', 'Meeting QLs'],
       typical_impact: '15-45% meeting booking improvement',
-      hubspot_implementation: 'ChatFlow with meeting scheduler integration'
+      hubspot_implementation: 'ChatFlow with meeting scheduler integration',
+      example_experiments: [
+        'BAMIC InApp AB Test - EN Pricing Page (All Users) - BOT363',
+        'Salesbot on InApp Pricing (1-10 EE) AB Test - BOT365',
+        'Bot 407 | Onsite | EN | Contact Sales | GAI | Salesbot | BAMIC',
+        'BOT388 - BAMIC New Module - EN InApp Pricing Pages',
+        'BOT 325 - FR InApp pricing Pages - BAMIC',
+        'BOT 310 BAM Experiment FR Pricing Page'
+      ]
     },
     'Quick Replies': {
       experiments: 6,
@@ -168,7 +193,13 @@ const EXPERIMENT_LIBRARY_CONTEXT = {
       description: 'Pre-defined response options, conversation flow optimization',
       metrics: ['Engagement Rate', 'Demo CVR'],
       typical_impact: '20-120% engagement improvement',
-      hubspot_implementation: 'Quick reply buttons in ChatFlow builder'
+      hubspot_implementation: 'Quick reply buttons in ChatFlow builder',
+      example_experiments: [
+        'Experiment w/ QR on EN Knowledge Base Generative AI',
+        'QR Optimization on InApp | EN | Academy | Generative AI',
+        'QRs on FR Knowledge Base - Generative AI',
+        'Quick Win Sprint Experiment'
+      ]
     },
     'Demo RFF (Request for Form)': {
       experiments: 5,
@@ -177,7 +208,14 @@ const EXPERIMENT_LIBRARY_CONTEXT = {
       description: 'Simplified demo request process, reduced form fields',
       metrics: ['Demo CVR', 'Quick Reply Click'],
       typical_impact: '37-625% demo conversion improvement',
-      hubspot_implementation: 'Simplified form integration in chat'
+      hubspot_implementation: 'Simplified form integration in chat',
+      example_experiments: [
+        'Bot406 CRM Catchall AM - Adding Demo RFF',
+        'Bot362 Demo Paid LP - Replacing QR Demo with RFF',
+        'Bot 376 Homepage - Adding QR Book a Demo with RFF',
+        'BOT356 - Demo RFF - Replace actual Demo QL in Chat - FR CRM Signup',
+        'BOT331: RFF & Demo QL within Chat'
+      ]
     }
   },
   
@@ -476,13 +514,62 @@ Every idea must directly address at least one current performance challenge:
 4. Digital channel optimization
 5. Self-service journey progression
 
+SOURCES CITATION REQUIREMENTS:
+For the "sources" field, you MUST cite specific, traceable sources:
+
+1. EXACT EXPERIMENT NAMES from the library (never generic references):
+   ✅ CORRECT: "Bot378 Salesbot: Onsite | EN | Partners"
+   ✅ CORRECT: "BAMIC InApp AB Test - EN Pricing Page (All Users) - BOT363"  
+   ✅ CORRECT: "Bot406 CRM Catchall AM - Adding Demo RFF"
+   ❌ WRONG: "Salesbot experiment", "BAMIC pattern", "Demo RFF success"
+
+2. EXTERNAL SOURCES - Cite ANY legitimate external source you know about:
+   ✅ CORRECT: "HubSpot State of Marketing Report 2024", "HubSpot Conversational Marketing Benchmark 2024", "HubSpot Customer Service Trends Report"
+   ✅ CORRECT: "Drift Conversational Marketing Report 2024", "Intercom Customer Engagement Study 2024", "LiveChat Industry Benchmark"
+   ✅ CORRECT: "Salesforce State of Connected Customer Report", "Zendesk CX Trends Report", "Gartner Customer Service Technology Study"
+   ✅ CORRECT: "Forrester Conversational AI Research", "McKinsey Customer Journey Analysis", "Deloitte Digital Experience Study"
+   ✅ CORRECT: "Harvard Business Review Customer Engagement Research", "MIT Technology Review AI Adoption Study"
+   ✅ CORRECT: "Google Analytics Industry Benchmarks", "Facebook Business Performance Data", "LinkedIn Marketing Solutions Report"
+   
+   Use ANY specific, named external source - not limited to these examples. Include:
+   - HubSpot's own reports, studies, and research
+   - Industry benchmark reports (Drift, Intercom, Salesforce, Zendesk, etc.)
+   - Research firms (Gartner, Forrester, McKinsey, Deloitte, PwC, etc.)
+   - Academic studies (Harvard, MIT, Stanford, etc.)
+   - Platform performance data (Google, Facebook, LinkedIn, etc.)
+   - Any other legitimate, named external source
+   
+   ❌ WRONG: "Industry benchmark", "Public data", "Research study", "External report"
+
+3. CURRENT TEAM PERFORMANCE DATA when referencing provided metrics:
+   ✅ CORRECT: "Current deflection rate performance (76%, +3pts MoM)"
+   ✅ CORRECT: "Digital channel success pattern (180% MRR attainment)"
+   ❌ WRONG: "Team performance", "Current metrics"
+
+FULL EXPERIMENT LIBRARY AVAILABLE FOR CITATION (90 unique experiments):
+You have access to cite ANY of these exact experiment names as sources. Here are examples by category:
+
+Demo RFF (5 total): "Bot406 CRM Catchall AM - Adding Demo RFF", "Bot362 Demo Paid LP - Replacing QR Demo with RFF", "Bot 376 Homepage - Adding QR Book a Demo with RFF", "BOT356 - Demo RFF - Replace actual Demo QL in Chat - FR CRM Signup", "BOT331: RFF & Demo QL within Chat"
+
+Salesbot (17 total): "Bot378 Salesbot: Onsite | EN | Partners", "Bot397 Salesbot - Onsite | EN | Competitive pages", "Bot383 Salesbot - Marketing Catchall AM", "Bot 381 Adding Salesbot to Case Studies chatbot", "BOT 336 | Onsite | EN | Contact Sales | GAI | Salesbot", "Bot361 adding Gen Ai to Affiliate Marketing CRM Catchall", "Adding Salesbot to Website Themes", "Self-Service Bot vs SalesBot on InApp | EN | Academy | Generative AI"
+
+BAMIC (15 total): "BAMIC InApp AB Test - EN Pricing Page (All Users) - BOT363", "Salesbot on InApp Pricing (1-10 EE) AB Test - BOT365", "Bot 407 | Onsite | EN | Contact Sales | GAI | Salesbot | BAMIC", "BOT388 - BAMIC New Module - EN InApp Pricing Pages", "BOT 325 - FR InApp pricing Pages - BAMIC", "BOT 310 BAM Experiment FR Pricing Page"
+
+Self Service Bot (19 total): "Bot 313: Generative AI on Marketing Hub Product Homepage", "Bot 316: Generative AI Catchall on EN Product Pages", "Bot 320: Generative AI on CRM Paid LP (2.0)", "BOT373 - Generative AI on InApp DACH Help-in the Nav", "Generative AI BOT345 Onsite DACH HomePage", "Generative AI BOT355 Onsite Offer Demo Pages"
+
+Quick Replies (6 total): "Experiment w/ QR on EN Knowledge Base Generative AI", "QR Optimization on InApp | EN | Academy | Generative AI", "QRs on FR Knowledge Base - Generative AI", "Quick Win Sprint Experiment"
+
+Plus experiments in: Revamp, Net New, Sales Bot, Contact Us Bot, Mobile Targeting, Demo QL, Welcome Message, Chat Display Behavior, and more.
+
+IMPORTANT: These are just examples - you can cite ANY of the 90 unique experiment names from the complete library.
+
 JSON format:
 {
   "ideas": [
     {
       "idea": "[~40 words addressing specific current performance challenge using exact user terminology, implementable via HubSpot ChatFlow]",
       "expectedResult": "[X-Y%] improvement in [specific current metric] addressing [current performance gap], measured through [HubSpot tracking method]",
-      "sources": ["HubSpot [specific feature/integration]", "Current team performance pattern [specific success area]"]
+      "sources": ["[EXACT experiment name from library]", "[Specific public source title OR current team performance metric]"]
     }
   ]
 }
@@ -648,13 +735,19 @@ REFINEMENT PRINCIPLES:
 4. Avoid the 94 already-tested experiment variations
 5. Address both original needs AND refinement request cohesively
 
+SOURCES CITATION REQUIREMENTS:
+Use EXACT experiment names and ANY legitimate external sources:
+✅ CORRECT INTERNAL: "Bot378 Salesbot: Onsite | EN | Partners", "BAMIC InApp AB Test - EN Pricing Page (All Users) - BOT363"
+✅ CORRECT EXTERNAL: "HubSpot Conversational Marketing Report 2024", "Drift Industry Benchmark Study", "Forrester Conversational AI Research", "Harvard Business Review Customer Engagement Analysis"
+❌ WRONG: "Salesbot experiment", "BAMIC pattern", "HubSpot feature", "industry data", "research study"
+
 The refined idea should be achievable through HubSpot's current ChatFlow capabilities while incorporating their specific refinement request.
 
 JSON format:
 {
   "idea": "[Refined ~40 words using their exact terminology, implementable via HubSpot ChatFlow]",
   "expectedResult": "[Updated percentage] improvement in [their specific metric] based on [relevant experiment pattern], measured through [HubSpot tracking]",
-  "sources": ["HubSpot [specific feature]", "Experiment library [pattern]"]
+  "sources": ["[EXACT experiment name from library]", "[Specific source or current performance metric]"]
 }`;
 
     const response = await anthropic.messages.create({
@@ -717,7 +810,7 @@ app.post('/api/refine-idea', async (req, res) => {
         break;
     }
     
-    prompt += '\n\nEnsure the refined idea is implementable through HubSpot ChatFlow capabilities and avoids the 94 already-tested experiment patterns.\n\nReturn JSON format: {"idea": "refined idea", "expectedResult": "refined result", "sources": ["HubSpot feature", "Experiment pattern"]}';
+    prompt += '\n\nEnsure the refined idea is implementable through HubSpot ChatFlow capabilities and avoids the 94 already-tested experiment patterns.\n\nSOURCES CITATION: Use EXACT experiment names (like "Bot378 Salesbot: Onsite | EN | Partners") or ANY legitimate external source (like "HubSpot State of Marketing Report 2024", "Drift Conversational Marketing Benchmark", "Forrester AI Research"), never generic references.\n\nReturn JSON format: {"idea": "refined idea", "expectedResult": "refined result", "sources": ["[EXACT experiment name OR specific external source]", "[Another specific source]"]}';
 
     const response = await anthropic.messages.create({
       model: 'claude-3-5-sonnet-20241022',
