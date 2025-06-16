@@ -422,8 +422,8 @@ const githubAPI = async (method, endpoint, data = null) => {
   return { response, data: response.ok ? await response.json() : null };
 };
 
-// Save data to GitHub
-const saveUsageData = async () => {
+// ENHANCED: Save data to GitHub with retry logic for 409 conflicts
+const saveUsageData = async (retryCount = 0) => {
   try {
     if (!GITHUB_TOKEN || !GITHUB_OWNER || !GITHUB_REPO) {
       console.log('GitHub not configured, using local fallback');
@@ -431,7 +431,7 @@ const saveUsageData = async () => {
       return;
     }
 
-    console.log(`Saving ${usageData.length} records to GitHub...`);
+    console.log(`Saving ${usageData.length} records to GitHub... (attempt ${retryCount + 1})`);
     
     // Get current file to get SHA (required for updates)
     const { response: getResponse, data: currentFile } = await githubAPI('GET', `contents/${GITHUB_FILE_PATH}`);
@@ -452,11 +452,22 @@ const saveUsageData = async () => {
     
     if (saveResponse.ok) {
       console.log(`✅ Usage data saved to GitHub successfully! Total records: ${usageData.length}`);
+    } else if (saveResponse.status === 409 && retryCount < 3) {
+      // Handle SHA conflict by retrying with fresh SHA
+      console.log(`⚠️ GitHub save conflict (409), retrying... (attempt ${retryCount + 1}/3)`);
+      await new Promise(resolve => setTimeout(resolve, 1000 + (retryCount * 500))); // Progressive delay
+      return await saveUsageData(retryCount + 1);
     } else {
       throw new Error(`GitHub save failed: ${saveResponse.status}`);
     }
     
   } catch (error) {
+    if (error.message.includes('409') && retryCount < 3) {
+      console.log(`⚠️ GitHub save conflict, retrying... (attempt ${retryCount + 1}/3)`);
+      await new Promise(resolve => setTimeout(resolve, 1000 + (retryCount * 500)));
+      return await saveUsageData(retryCount + 1);
+    }
+    
     console.error('Error saving to GitHub:', error);
     console.log('Falling back to local file...');
     saveToLocalFile();

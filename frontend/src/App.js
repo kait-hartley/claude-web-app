@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Zap, MessageCircle, Settings, ArrowLeft, Send, Copy, CheckCircle, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import './App.css';
 
@@ -43,7 +43,7 @@ const handleAuth = (e) => {
   }
 };
 
-// Session tracking functions
+// FIXED: Session tracking functions with better error handling
 const startSession = async () => {
   if (sessionStarted || !userName.trim()) return;
   
@@ -67,19 +67,20 @@ const startSession = async () => {
   }
 };
 
-const endSession = async () => {
+// FIXED: End session with proper error handling
+const endSession = useCallback(async () => {
   if (!sessionId) return;
   
   try {
     await fetch('https://claude-web-app.onrender.com/api/end-session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId })
+      body: JSON.stringify({ sessionId: sessionId })
     });
   } catch (error) {
     console.error('Error ending session:', error);
   }
-};
+}, [sessionId]);
 
 const trackIdeaGeneration = async (promptUsed) => {
   if (!sessionId) return;
@@ -103,23 +104,26 @@ const downloadUsageData = () => {
   window.open('https://claude-web-app.onrender.com/api/download-usage-data', '_blank');
 };
 
-// Session cleanup effect
+// FIXED: Session cleanup effect with proper dependencies
 useEffect(() => {
   const handleBeforeUnload = () => {
     if (sessionId) {
+      // Use sendBeacon for reliable cleanup on page unload
       navigator.sendBeacon('https://claude-web-app.onrender.com/api/end-session', 
         JSON.stringify({ sessionId }));
     }
   };
   
   window.addEventListener('beforeunload', handleBeforeUnload);
+  
   return () => {
     window.removeEventListener('beforeunload', handleBeforeUnload);
+    // Call endSession when component unmounts
     if (sessionId) {
       endSession();
     }
   };
-}, [sessionId]);
+}, [sessionId, endSession]);
 
 // Show auth screen if not authenticated
 if (!isAuthenticated) {
