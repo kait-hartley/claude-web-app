@@ -28,7 +28,7 @@ const [loadingSteps, setLoadingSteps] = useState({});
 const [sortOption, setSortOption] = useState('');
 const [expandedSteps, setExpandedSteps] = useState({});
 
-// KPI Tracking state
+// KPI Tracking state - UPDATED FOR FORM-BASED TRACKING
 const [userName, setUserName] = useState('');
 const [sessionId, setSessionId] = useState(null);
 const [sessionStarted, setSessionStarted] = useState(false);
@@ -43,8 +43,8 @@ const handleAuth = (e) => {
   }
 };
 
-// FIXED: Session tracking functions with better error handling
-const startSession = async () => {
+// UPDATED: Create session when user enters name but don't track yet
+const createSession = async () => {
   if (sessionStarted || !userName.trim()) return;
   
   const newSessionId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
@@ -56,18 +56,41 @@ const startSession = async () => {
       body: JSON.stringify({
         userName: userName.trim(),
         sessionId: newSessionId,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        userInput: userInput,
+        selectedKPI: selectedKPI,
+        customKPI: customKPI
       })
     });
     
     setSessionId(newSessionId);
     setSessionStarted(true);
   } catch (error) {
-    console.error('Error starting session:', error);
+    console.error('Error creating session:', error);
   }
 };
 
-// FIXED: End session with proper error handling
+// NEW: Track form submission - THIS IS THE KEY METRIC
+const trackFormSubmission = async () => {
+  if (!sessionId) return;
+  
+  try {
+    await fetch('https://claude-web-app.onrender.com/api/track-form-submission', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId,
+        userInput: userInput,
+        selectedKPI: selectedKPI,
+        customKPI: customKPI
+      })
+    });
+  } catch (error) {
+    console.error('Error tracking form submission:', error);
+  }
+};
+
+// End session with proper error handling
 const endSession = useCallback(async () => {
   if (!sessionId) return;
   
@@ -82,29 +105,12 @@ const endSession = useCallback(async () => {
   }
 }, [sessionId]);
 
-const trackIdeaGeneration = async (promptUsed) => {
-  if (!sessionId) return;
-  
-  try {
-    await fetch('https://claude-web-app.onrender.com/api/track-idea', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        sessionId,
-        promptUsed: promptUsed.substring(0, 100)
-      })
-    });
-  } catch (error) {
-    console.error('Error tracking idea:', error);
-  }
-};
-
 // Download usage data function
 const downloadUsageData = () => {
   window.open('https://claude-web-app.onrender.com/api/download-usage-data', '_blank');
 };
 
-// FIXED: Session cleanup effect with proper dependencies
+// Session cleanup effect
 useEffect(() => {
   const handleBeforeUnload = () => {
     if (sessionId) {
@@ -503,12 +509,13 @@ const fetchImplementationSteps = async (ideaId) => {
   }
 };
 
+// UPDATED: Generate ideas function with form submission tracking
 const handleGenerateIdeas = async (isRetry = false) => {
   if (!userInput.trim()) return;
   
-  // Add session tracking before starting generation
+  // Create session if not exists
   if (!sessionStarted && userName.trim()) {
-    await startSession();
+    await createSession();
   }
   
   setIsGenerating(true);
@@ -523,6 +530,11 @@ const handleGenerateIdeas = async (isRetry = false) => {
     uploadedFiles.forEach((file, index) => {
       formData.append('files', file);
     });
+
+    // TRACK FORM SUBMISSION - THIS IS THE KEY METRIC
+    if (sessionId) {
+      await trackFormSubmission();
+    }
 
     const response = await fetch('https://claude-web-app.onrender.com/api/generate-ideas', {
       method: 'POST',
@@ -547,11 +559,6 @@ const handleGenerateIdeas = async (isRetry = false) => {
     setIdeas(formattedIdeas);
     setCurrentScreen('output');
     setRetryCount(0);
-    
-    // Add tracking after successful generation
-    if (sessionId) {
-      await trackIdeaGeneration(userInput);
-    }
     
     // Clear states when generating new ideas
     setRefinementInputs({});
