@@ -102,7 +102,7 @@ app.post('/api/end-session', (req, res) => {
 // CSV download endpoint - provides ALL usage data from all users
 app.get('/api/download-usage-data', (req, res) => {
   try {
-    const csvHeader = 'Date,User Name,Session Start,Session End,Duration (minutes),Sample Prompt\n';
+    const csvHeader = 'Date,User Name,Session Start (EST),Session End (EST),Duration (minutes),Prompt\n';
     const csvRows = usageData.map(row => 
       `${row.date},"${row.userName}",${row.sessionStart},${row.sessionEnd},${row.sessionDuration},"${row.lastPrompt}"`
     );
