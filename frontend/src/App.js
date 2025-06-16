@@ -114,9 +114,13 @@ const downloadUsageData = () => {
 useEffect(() => {
   const handleBeforeUnload = () => {
     if (sessionId) {
-      // Use sendBeacon for reliable cleanup on page unload
-      navigator.sendBeacon('https://claude-web-app.onrender.com/api/end-session', 
-        JSON.stringify({ sessionId }));
+      // Use fetch with keepalive instead of sendBeacon
+      fetch('https://claude-web-app.onrender.com/api/end-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId }),
+        keepalive: true
+      }).catch(() => {}); // Ignore errors on page unload
     }
   };
   
