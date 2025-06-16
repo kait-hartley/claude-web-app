@@ -1,4 +1,4 @@
-const express = require('express');
+\const express = require('express');
 const cors = require('cors');
 const Anthropic = require('@anthropic-ai/sdk');
 const path = require('path');
@@ -20,9 +20,38 @@ const anthropic = new Anthropic({
 // Setup file upload handling
 const upload = multer({ dest: 'uploads/' });
 
-// KPI Tracking - Usage data storage
+// KPI Tracking - File-based storage to persist data
+const path = require('path');
+const dataFile = path.join(__dirname, 'usage-data.json');
+
+// Load existing data on server start
 let usageData = [];
 let currentSessions = {}; // Track active sessions
+
+// Function to load data from file
+const loadUsageData = () => {
+  try {
+    if (fs.existsSync(dataFile)) {
+      const data = fs.readFileSync(dataFile, 'utf8');
+      usageData = JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('Error loading usage data:', error);
+    usageData = [];
+  }
+};
+
+// Function to save data to file
+const saveUsageData = () => {
+  try {
+    fs.writeFileSync(dataFile, JSON.stringify(usageData, null, 2));
+  } catch (error) {
+    console.error('Error saving usage data:', error);
+  }
+};
+
+// Load existing data when server starts
+loadUsageData();
 
 app.use(cors());
 app.use(express.json());
