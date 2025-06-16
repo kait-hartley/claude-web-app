@@ -17,7 +17,47 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-// FIXED: Implementation Steps API endpoint - Always returns exactly 4 steps
+// Enhanced API call with retry logic for overload errors
+async function callAnthropicWithRetry(anthropic, requestConfig, maxRetries = 3, baseDelay = 2000) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`Anthropic API call attempt ${attempt}/${maxRetries}`);
+      const response = await anthropic.messages.create(requestConfig);
+      console.log(`✅ Anthropic API call successful on attempt ${attempt}`);
+      return response;
+      
+    } catch (error) {
+      const isOverloadError = error.status === 529 || 
+                             error.message?.includes('overloaded') || 
+                             error.message?.includes('Overloaded');
+      
+      const isRateLimitError = error.status === 429;
+      
+      if ((isOverloadError || isRateLimitError) && attempt < maxRetries) {
+        // Exponential backoff: 2s, 4s, 8s, etc.
+        const delay = baseDelay * Math.pow(2, attempt - 1);
+        
+        console.log(`⚠️ Anthropic API ${isOverloadError ? 'overloaded' : 'rate limited'} (attempt ${attempt}/${maxRetries})`);
+        console.log(`🔄 Retrying in ${delay/1000} seconds...`);
+        
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+        
+      } else {
+        // Re-throw error if not retryable or max attempts reached
+        console.error(`❌ Anthropic API error after ${attempt} attempts:`, {
+          status: error.status,
+          type: error.error?.type,
+          message: error.message
+        });
+        throw error;
+      }
+    }
+  }
+}
+
+// ENHANCED: Implementation Steps API endpoint with retry logic
 app.post('/api/implementation-steps', async (req, res) => {
   try {
     const { idea, expectedResult, originalUserInput } = req.body;
@@ -80,7 +120,8 @@ JSON format:
 
 Generate exactly 4 practical HubSpot implementation steps that convert this experiment idea into actionable tasks.`;
 
-    const response = await anthropic.messages.create({
+    // Use enhanced retry logic
+    const response = await callAnthropicWithRetry(anthropic, {
       model: 'claude-3-5-sonnet-20241022',
       max_tokens: 2000,
       temperature: 0.6,
@@ -90,7 +131,7 @@ Generate exactly 4 practical HubSpot implementation steps that convert this expe
           content: prompt
         }
       ]
-    });
+    }, 3, 1500); // 3 retries, 1.5 second base delay
 
     const content = response.content[0].text;
     let implementationData;
@@ -137,13 +178,33 @@ Generate exactly 4 practical HubSpot implementation steps that convert this expe
     }
 
     res.json(implementationData);
+    
   } catch (error) {
     console.error('Error generating implementation steps:', error);
-    res.status(500).json({ error: 'Failed to generate implementation steps' });
+    
+    // Enhanced error response
+    if (error.status === 529) {
+      res.status(503).json({ 
+        error: 'AI service temporarily overloaded. Please try again in a few moments.',
+        retryAfter: 30,
+        type: 'overload'
+      });
+    } else if (error.status === 429) {
+      res.status(429).json({ 
+        error: 'Rate limit exceeded. Please wait before trying again.',
+        retryAfter: 60,
+        type: 'rate_limit'
+      });
+    } else {
+      res.status(500).json({ 
+        error: 'Failed to generate implementation steps. Please try again.',
+        type: 'general'
+      });
+    }
   }
 });
 
-// FIXED: Enhanced refinement with control character handling
+// ENHANCED: Custom refinement with retry logic
 app.post('/api/refine-idea-custom', async (req, res) => {
   try {
     const { idea, expectedResult, customRefinement, originalUserInput } = req.body;
@@ -188,7 +249,8 @@ JSON format:
   "sources": ["[EXACT experiment name from library]", "[Specific source or current performance metric]"]
 }`;
 
-    const response = await anthropic.messages.create({
+    // Use enhanced retry logic
+    const response = await callAnthropicWithRetry(anthropic, {
       model: 'claude-3-5-sonnet-20241022',
       max_tokens: 2000,
       temperature: 0.7,
@@ -198,7 +260,7 @@ JSON format:
           content: prompt
         }
       ]
-    });
+    }, 3, 1500); // 3 retries, 1.5 second base delay
 
     const content = response.content[0].text;
     let refinedIdea;
@@ -221,9 +283,27 @@ JSON format:
     }
 
     res.json(refinedIdea);
+    
   } catch (error) {
     console.error('Error refining idea:', error);
-    res.status(500).json({ error: 'Failed to refine experiment idea' });
+    
+    // Enhanced error response
+    if (error.status === 529) {
+      res.status(503).json({ 
+        error: 'AI service temporarily overloaded. Please try again in a few moments.',
+        type: 'overload'
+      });
+    } else if (error.status === 429) {
+      res.status(429).json({ 
+        error: 'Rate limit exceeded. Please wait before trying again.',
+        type: 'rate_limit'
+      });
+    } else {
+      res.status(500).json({ 
+        error: 'Failed to refine experiment idea. Please try again.',
+        type: 'general'
+      });
+    }
   }
 });
 
@@ -251,7 +331,8 @@ app.post('/api/refine-idea', async (req, res) => {
     
     prompt += '\n\nEnsure the refined idea is implementable through HubSpot ChatFlow capabilities and avoids the 94 already-tested experiment patterns.\n\nSOURCES CITATION: Use EXACT experiment names (like "Bot378 Salesbot: Onsite | EN | Partners") or ANY legitimate external source (like "HubSpot State of Marketing Report 2024", "Drift Conversational Marketing Benchmark", "Forrester AI Research"), never generic references.\n\nReturn JSON format: {"idea": "refined idea", "expectedResult": "refined result", "sources": ["[EXACT experiment name OR specific external source]", "[Another specific source]"]}';
 
-    const response = await anthropic.messages.create({
+    // Use enhanced retry logic
+    const response = await callAnthropicWithRetry(anthropic, {
       model: 'claude-3-5-sonnet-20241022',
       max_tokens: 1500,
       temperature: 0.6,
@@ -261,7 +342,7 @@ app.post('/api/refine-idea', async (req, res) => {
           content: prompt
         }
       ]
-    });
+    }, 3, 1000); // 3 retries, 1 second base delay
 
     const content = response.content[0].text;
     let refinedIdea;
@@ -280,9 +361,27 @@ app.post('/api/refine-idea', async (req, res) => {
     }
 
     res.json(refinedIdea);
+    
   } catch (error) {
     console.error('Error:', error);
-    res.status(500).json({ error: 'Failed to refine experiment idea' });
+    
+    // Enhanced error response
+    if (error.status === 529) {
+      res.status(503).json({ 
+        error: 'AI service temporarily overloaded. Please try again in a few moments.',
+        type: 'overload'
+      });
+    } else if (error.status === 429) {
+      res.status(429).json({ 
+        error: 'Rate limit exceeded. Please wait before trying again.',
+        type: 'rate_limit'
+      });
+    } else {
+      res.status(500).json({ 
+        error: 'Failed to refine experiment idea. Please try again.',
+        type: 'general'
+      });
+    }
   }
 });
 
@@ -345,7 +444,7 @@ const saveUsageData = async () => {
     };
     
     // If file exists, include SHA for update
-    if (getResponse.ok && currentFile.sha) {
+    if (getResponse.ok && currentFile && currentFile.sha) {
       commitData.sha = currentFile.sha;
     }
     
@@ -377,7 +476,7 @@ const loadUsageData = async () => {
     
     const { response, data } = await githubAPI('GET', `contents/${GITHUB_FILE_PATH}`);
     
-    if (response.ok && data.content) {
+    if (response.ok && data && data.content) {
       const jsonContent = Buffer.from(data.content, 'base64').toString('utf8');
       usageData = JSON.parse(jsonContent);
       console.log(`✅ Loaded ${usageData.length} usage records from GitHub`);
@@ -578,8 +677,10 @@ app.post('/api/track-idea', async (req, res) => {
         usageData.push(newRecord);
       }
       
-      // Save to file immediately
-      await saveUsageData();
+      // Save to GitHub in background - don't wait for it
+      saveUsageData().catch(error => {
+        console.error('Background save to GitHub failed:', error);
+      });
       
       console.log(`Data saved for user: ${session.userName}, Total records: ${usageData.length}`);
     }
@@ -1132,7 +1233,7 @@ async function analyzeUploadedFiles(files) {
   return analysis;
 }
 
-// UPDATED: Enhanced idea generation - NOW GENERATES 7 IDEAS
+// ENHANCED: Main idea generation with retry logic - NOW GENERATES 7 IDEAS
 app.post('/api/generate-ideas', upload.array('files'), async (req, res) => {
   try {
     const { userInput, selectedKPI, customKPI } = req.body;
@@ -1221,7 +1322,8 @@ JSON format:
 
 Generate 7 ideas that feel custom-created for their exact challenge, with each idea offering a genuinely different approach to solving THEIR specific problem.`;
 
-    const response = await anthropic.messages.create({
+    // Use enhanced retry logic
+    const response = await callAnthropicWithRetry(anthropic, {
       model: 'claude-3-5-sonnet-20241022',
       max_tokens: 6000,
       temperature: 0.85,
@@ -1231,7 +1333,7 @@ Generate 7 ideas that feel custom-created for their exact challenge, with each i
           content: enhancedPrompt
         }
       ]
-    });
+    }, 3, 2000); // 3 retries, 2 second base delay
 
     const content = response.content[0].text;
     let ideas;
@@ -1256,13 +1358,31 @@ Generate 7 ideas that feel custom-created for their exact challenge, with each i
     }
 
     res.json(ideas);
+    
   } catch (error) {
     console.error('Error generating ideas:', error);
-    res.status(500).json({ error: 'Failed to generate experiment ideas' });
+    
+    // Enhanced error response based on error type
+    if (error.status === 529) {
+      res.status(503).json({ 
+        error: 'AI service temporarily overloaded. Please try again in a few moments.',
+        retryAfter: 30,
+        type: 'overload'
+      });
+    } else if (error.status === 429) {
+      res.status(429).json({ 
+        error: 'Rate limit exceeded. Please wait before trying again.',
+        retryAfter: 60,
+        type: 'rate_limit'
+      });
+    } else {
+      res.status(500).json({ 
+        error: 'Failed to generate experiment ideas. Please try again.',
+        type: 'general'
+      });
+    }
   }
 });
-
-// All other API endpoints remain the same...
 
 app.listen(port, () => {
   console.log(`HubSpot Conversational Marketing Experiment Generator running on http://localhost:${port}`);
@@ -1274,4 +1394,5 @@ app.listen(port, () => {
   console.log(`  - Repo: ${GITHUB_REPO || '❌ Missing'}`);
   console.log(`  - Status: ${GITHUB_TOKEN && GITHUB_OWNER && GITHUB_REPO ? '✅ Ready' : '⚠️ Will use local fallback'}`);
   console.log(`Loaded ${usageData.length} existing usage records`);
+  console.log(`✅ Enhanced API retry logic added - ready to handle overload errors!`);
 });
