@@ -27,83 +27,134 @@ const dataFile = path.join(__dirname, 'usage-data.json');
 let usageData = [];
 let currentSessions = {}; // Track active sessions
 
-// JSONBin.org configuration
-const JSONBIN_API_KEY = process.env.JSONBIN_API_KEY;
-const JSONBIN_BIN_ID = process.env.JSONBIN_BIN_ID; // Will be set after first save
+// GitHub Storage Configuration
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const GITHUB_OWNER = process.env.GITHUB_OWNER; // Your GitHub username
+const GITHUB_REPO = process.env.GITHUB_REPO; // Repository name (e.g., 'hubspot-usage-data')
+const GITHUB_FILE_PATH = 'usage-data.json'; // File path in the repo
 
-// Function to save data to JSONBin
+// GitHub API helper
+const githubAPI = async (method, endpoint, data = null) => {
+  const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/${endpoint}`;
+  const options = {
+    method,
+    headers: {
+      'Authorization': `Bearer ${GITHUB_TOKEN}`,
+      'Accept': 'application/vnd.github.v3+json',
+      'User-Agent': 'HubSpot-Usage-Tracker'
+    }
+  };
+  
+  if (data) {
+    options.headers['Content-Type'] = 'application/json';
+    options.body = JSON.stringify(data);
+  }
+  
+  const response = await fetch(url, options);
+  return { response, data: response.ok ? await response.json() : null };
+};
+
+// Save data to GitHub
 const saveUsageData = async () => {
   try {
-    if (!JSONBIN_API_KEY) {
-      console.log('No JSONBin API key found, skipping save');
+    if (!GITHUB_TOKEN || !GITHUB_OWNER || !GITHUB_REPO) {
+      console.log('GitHub not configured, using local fallback');
+      saveToLocalFile();
       return;
     }
 
-    const url = JSONBIN_BIN_ID 
-      ? `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`
-      : 'https://api.jsonbin.io/v3/b';
-
-    const response = await fetch(url, {
-      method: JSONBIN_BIN_ID ? 'PUT' : 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Master-Key': JSONBIN_API_KEY,
-        'X-Bin-Name': 'hubspot-usage-data'
-      },
-      body: JSON.stringify(usageData)
-    });
-
-    if (response.ok) {
-      const result = await response.json();
-      if (!JSONBIN_BIN_ID && result.metadata && result.metadata.id) {
-        console.log(`First save successful. Set JSONBIN_BIN_ID environment variable to: ${result.metadata.id}`);
-        console.log('Then restart your Render service');
-      }
-      console.log(`Usage data saved to JSONBin. Total records: ${usageData.length}`);
+    console.log(`Saving ${usageData.length} records to GitHub...`);
+    
+    // Get current file to get SHA (required for updates)
+    const { response: getResponse, data: currentFile } = await githubAPI('GET', `contents/${GITHUB_FILE_PATH}`);
+    
+    const fileContent = Buffer.from(JSON.stringify(usageData, null, 2)).toString('base64');
+    const commitData = {
+      message: `Update usage data: ${usageData.length} records (${new Date().toISOString()})`,
+      content: fileContent,
+      branch: 'main'
+    };
+    
+    // If file exists, include SHA for update
+    if (getResponse.ok && currentFile.sha) {
+      commitData.sha = currentFile.sha;
+    }
+    
+    const { response: saveResponse } = await githubAPI('PUT', `contents/${GITHUB_FILE_PATH}`, commitData);
+    
+    if (saveResponse.ok) {
+      console.log(`✅ Usage data saved to GitHub successfully! Total records: ${usageData.length}`);
     } else {
-      throw new Error(`JSONBin save failed: ${response.status}`);
+      throw new Error(`GitHub save failed: ${saveResponse.status}`);
     }
+    
   } catch (error) {
-    console.error('Error saving usage data to JSONBin:', error);
-    // Fallback to local file if JSONBin fails
-    try {
-      const dir = path.dirname(dataFile);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-      fs.writeFileSync(dataFile, JSON.stringify(usageData, null, 2));
-      console.log('Fallback: saved to local file');
-    } catch (localError) {
-      console.error('Both JSONBin and local save failed:', localError);
-    }
+    console.error('Error saving to GitHub:', error);
+    console.log('Falling back to local file...');
+    saveToLocalFile();
   }
 };
 
-// Function to load data from JSONBin
+// Load data from GitHub
 const loadUsageData = async () => {
   try {
-    if (!JSONBIN_API_KEY || !JSONBIN_BIN_ID) {
-      console.log('JSONBin not configured, starting with empty data');
-      usageData = [];
+    if (!GITHUB_TOKEN || !GITHUB_OWNER || !GITHUB_REPO) {
+      console.log('GitHub not configured, loading from local file');
+      loadFromLocalFile();
       return;
     }
 
-    const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
-      headers: {
-        'X-Master-Key': JSONBIN_API_KEY
-      }
-    });
-
-    if (response.ok) {
-      const result = await response.json();
-      usageData = result.record || [];
-      console.log(`Loaded ${usageData.length} usage records from JSONBin`);
+    console.log('Loading usage data from GitHub...');
+    
+    const { response, data } = await githubAPI('GET', `contents/${GITHUB_FILE_PATH}`);
+    
+    if (response.ok && data.content) {
+      const jsonContent = Buffer.from(data.content, 'base64').toString('utf8');
+      usageData = JSON.parse(jsonContent);
+      console.log(`✅ Loaded ${usageData.length} usage records from GitHub`);
+    } else if (response.status === 404) {
+      console.log('No existing usage data found in GitHub, starting fresh');
+      usageData = [];
     } else {
-      throw new Error(`JSONBin load failed: ${response.status}`);
+      throw new Error(`GitHub load failed: ${response.status}`);
+    }
+    
+  } catch (error) {
+    console.error('Error loading from GitHub:', error);
+    console.log('Falling back to local file...');
+    loadFromLocalFile();
+  }
+};
+
+// Local file fallback functions
+const saveToLocalFile = () => {
+  try {
+    const dir = path.dirname(dataFile);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(dataFile, JSON.stringify(usageData, null, 2));
+    console.log(`Fallback: saved ${usageData.length} records to local file`);
+  } catch (error) {
+    console.error('Local file save failed:', error);
+  }
+};
+
+const loadFromLocalFile = () => {
+  try {
+    if (fs.existsSync(dataFile)) {
+      const data = fs.readFileSync(dataFile, 'utf8');
+      usageData = JSON.parse(data);
+      console.log(`Fallback: loaded ${usageData.length} records from local file`);
+    } else {
+      console.log('No local file found, starting fresh');
+      usageData = [];
     }
   } catch (error) {
-    console.error('Error loading usage data from JSONBin:', error);
-    // Fallback to local file
+    console.error('Local file load failed:', error);
+    usageData = [];
+  }
+}; local file
     try {
       if (fs.existsSync(dataFile)) {
         const data = fs.readFileSync(dataFile, 'utf8');
