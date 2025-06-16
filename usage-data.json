@@ -30,5 +30,21 @@
     "sessionEnd": "4:45:40 PM",
     "sessionDuration": 1,
     "lastPrompt": "Unknown"
+  },
+  {
+    "date": "06/16/2025",
+    "userName": "Kaitlyn Hartley",
+    "sessionStart": "5:00:48 PM",
+    "sessionEnd": "5:01:40 PM",
+    "sessionDuration": 1,
+    "lastPrompt": "Unknown"
+  },
+  {
+    "date": "06/16/2025",
+    "userName": "Kaitlyn Hartley",
+    "sessionStart": "5:00:48 PM",
+    "sessionEnd": "5:01:41 PM",
+    "sessionDuration": 1,
+    "lastPrompt": "Unknown"
   }
 ]
