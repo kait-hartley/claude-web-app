@@ -30,10 +30,25 @@ let currentSessions = {}; // Track active sessions
 // Function to load data from file
 const loadUsageData = () => {
   try {
+    // Try main location first
     if (fs.existsSync(dataFile)) {
       const data = fs.readFileSync(dataFile, 'utf8');
       usageData = JSON.parse(data);
+      console.log(`Loaded ${usageData.length} usage records from main file`);
+      return;
     }
+    
+    // Try backup location
+    const altDataFile = path.join(process.cwd(), 'usage-data-backup.json');
+    if (fs.existsSync(altDataFile)) {
+      const data = fs.readFileSync(altDataFile, 'utf8');
+      usageData = JSON.parse(data);
+      console.log(`Loaded ${usageData.length} usage records from backup file`);
+      return;
+    }
+    
+    console.log('No existing usage data found, starting fresh');
+    usageData = [];
   } catch (error) {
     console.error('Error loading usage data:', error);
     usageData = [];
@@ -43,14 +58,81 @@ const loadUsageData = () => {
 // Function to save data to file
 const saveUsageData = () => {
   try {
+    // Ensure directory exists
+    const dir = path.dirname(dataFile);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    
     fs.writeFileSync(dataFile, JSON.stringify(usageData, null, 2));
+    console.log(`Usage data saved. Total records: ${usageData.length}`);
   } catch (error) {
     console.error('Error saving usage data:', error);
+    // Try alternative location if main location fails
+    try {
+      const altDataFile = path.join(process.cwd(), 'usage-data-backup.json');
+      fs.writeFileSync(altDataFile, JSON.stringify(usageData, null, 2));
+      console.log('Data saved to backup location');
+    } catch (altError) {
+      console.error('Error saving to backup location:', altError);
+    }
   }
 };
 
 // Load existing data when server starts
 loadUsageData();
+
+// Periodic save every 5 minutes as backup
+setInterval(() => {
+  if (usageData.length > 0) {
+    saveUsageData();
+  }
+}, 5 * 60 * 1000); // 5 minutes
+
+// Cleanup abandoned sessions every 30 minutes
+setInterval(() => {
+  const now = new Date();
+  const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
+  
+  // Find records that are still "In Progress" but haven't been active for 30+ minutes
+  usageData.forEach((record, index) => {
+    if (record.isActive && record.sessionId) {
+      const session = currentSessions[record.sessionId];
+      
+      if (!session || new Date(session.lastActivity) < thirtyMinutesAgo) {
+        // Session is abandoned, estimate duration and mark complete
+        const estimatedDuration = session ? 
+          Math.round((new Date(session.lastActivity) - new Date(session.sessionStart)) / (1000 * 60)) :
+          15; // Default 15 minutes if no session data
+        
+        const estOptions = { 
+          timeZone: 'America/New_York', 
+          hour12: true, 
+          hour: 'numeric', 
+          minute: '2-digit', 
+          second: '2-digit' 
+        };
+        
+        usageData[index].sessionEnd = (session ? new Date(session.lastActivity) : now).toLocaleTimeString('en-US', estOptions);
+        usageData[index].sessionDuration = estimatedDuration;
+        usageData[index].isActive = false;
+        
+        // Clean up temporary fields
+        delete usageData[index].id;
+        delete usageData[index].sessionId;
+        
+        console.log(`Cleaned up abandoned session for ${record.userName}, estimated duration: ${estimatedDuration} minutes`);
+        
+        // Remove from active sessions
+        if (session) {
+          delete currentSessions[record.sessionId];
+        }
+      }
+    }
+  });
+  
+  saveUsageData();
+}, 30 * 60 * 1000); // 30 minutes
 
 app.use(cors());
 app.use(express.json());
@@ -80,7 +162,7 @@ app.post('/api/start-session', (req, res) => {
   }
 });
 
-// Track each idea generation
+// Track each idea generation - SAVE BASIC DATA IMMEDIATELY, UPDATE DURATION LATER
 app.post('/api/track-idea', (req, res) => {
   try {
     const { sessionId, promptUsed } = req.body;
@@ -89,25 +171,11 @@ app.post('/api/track-idea', (req, res) => {
       currentSessions[sessionId].ideasGenerated++;
       currentSessions[sessionId].lastPrompt = promptUsed;
       currentSessions[sessionId].lastActivity = new Date().toISOString();
-    }
-    
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error tracking idea:', error);
-    res.status(500).json({ error: 'Failed to track idea generation' });
-  }
-});
-
-// End session and save data
-app.post('/api/end-session', (req, res) => {
-  try {
-    const { sessionId } = req.body;
-    const session = currentSessions[sessionId];
-    
-    if (session && session.ideasGenerated > 0) {
-      const sessionEndTime = new Date();
+      
+      // Save basic data immediately to ensure persistence
+      const session = currentSessions[sessionId];
+      const recordTime = new Date();
       const sessionStartTime = new Date(session.sessionStart);
-      const sessionDuration = Math.round((sessionEndTime - sessionStartTime) / (1000 * 60)); // minutes
       
       // Format times in EST
       const estOptions = { 
@@ -125,18 +193,106 @@ app.post('/api/end-session', (req, res) => {
         day: 'numeric' 
       };
       
-      usageData.push({
-        date: sessionEndTime.toLocaleDateString('en-US', estDateOptions),
+      // Create unique record ID to avoid duplicates
+      const recordId = `${sessionId}_${Date.now()}`;
+      
+      // Save basic data immediately with preliminary duration
+      const newRecord = {
+        id: recordId,
+        sessionId: sessionId,
+        date: recordTime.toLocaleDateString('en-US', estDateOptions),
         userName: session.userName,
         sessionStart: sessionStartTime.toLocaleTimeString('en-US', estOptions),
-        sessionEnd: sessionEndTime.toLocaleTimeString('en-US', estOptions),
-        sessionDuration,
-        lastPrompt: session.lastPrompt ? session.lastPrompt.substring(0, 100) : 'Unknown'
-      });
+        sessionEnd: 'In Progress', // Will be updated when session ends
+        sessionDuration: 'In Progress', // Will be calculated when session ends
+        lastPrompt: session.lastPrompt ? session.lastPrompt.substring(0, 100) : 'Unknown',
+        isActive: true // Mark as active session
+      };
+      
+      // Check if we already have a record for this session
+      const existingIndex = usageData.findIndex(record => record.sessionId === sessionId);
+      
+      if (existingIndex >= 0) {
+        // Update existing record
+        usageData[existingIndex] = newRecord;
+      } else {
+        // Add new record
+        usageData.push(newRecord);
+      }
       
       // Save to file immediately
       saveUsageData();
       
+      console.log(`Data saved for user: ${session.userName}, Total records: ${usageData.length}`);
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error tracking idea:', error);
+    res.status(500).json({ error: 'Failed to track idea generation' });
+  }
+});
+
+// End session and update with ACCURATE session duration
+app.post('/api/end-session', (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    const session = currentSessions[sessionId];
+    
+    if (session) {
+      const sessionEndTime = new Date();
+      const sessionStartTime = new Date(session.sessionStart);
+      const actualSessionDuration = Math.round((sessionEndTime - sessionStartTime) / (1000 * 60)); // minutes
+      
+      // Format end time in EST
+      const estOptions = { 
+        timeZone: 'America/New_York', 
+        hour12: true, 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        second: '2-digit' 
+      };
+      
+      // Find and update the existing record with accurate session duration
+      const recordIndex = usageData.findIndex(record => record.sessionId === sessionId);
+      
+      if (recordIndex >= 0) {
+        usageData[recordIndex].sessionEnd = sessionEndTime.toLocaleTimeString('en-US', estOptions);
+        usageData[recordIndex].sessionDuration = actualSessionDuration;
+        usageData[recordIndex].isActive = false;
+        
+        // Remove temporary fields not needed in CSV
+        delete usageData[recordIndex].id;
+        delete usageData[recordIndex].sessionId;
+        delete usageData[recordIndex].isActive;
+        
+        console.log(`Updated session duration for ${session.userName}: ${actualSessionDuration} minutes`);
+      } else {
+        // Fallback: create record if somehow missing
+        const estDateOptions = { 
+          timeZone: 'America/New_York', 
+          weekday: 'short', 
+          year: 'numeric', 
+          month: 'short', 
+          day: 'numeric' 
+        };
+        
+        usageData.push({
+          date: sessionEndTime.toLocaleDateString('en-US', estDateOptions),
+          userName: session.userName,
+          sessionStart: sessionStartTime.toLocaleTimeString('en-US', estOptions),
+          sessionEnd: sessionEndTime.toLocaleTimeString('en-US', estOptions),
+          sessionDuration: actualSessionDuration,
+          lastPrompt: session.lastPrompt ? session.lastPrompt.substring(0, 100) : 'Unknown'
+        });
+        
+        console.log(`Created fallback record for ${session.userName}: ${actualSessionDuration} minutes`);
+      }
+      
+      // Save updated data
+      saveUsageData();
+      
+      // Clean up session
       delete currentSessions[sessionId];
     }
     
@@ -150,12 +306,56 @@ app.post('/api/end-session', (req, res) => {
 // CSV download endpoint - provides ALL usage data from all users
 app.get('/api/download-usage-data', (req, res) => {
   try {
+    console.log(`CSV Download requested. Total records: ${usageData.length}`);
+    
+    // Clean up any remaining "In Progress" sessions before CSV generation
+    const now = new Date();
+    const estOptions = { 
+      timeZone: 'America/New_York', 
+      hour12: true, 
+      hour: 'numeric', 
+      minute: '2-digit', 
+      second: '2-digit' 
+    };
+    
+    usageData.forEach((record, index) => {
+      if (record.sessionEnd === 'In Progress' || record.sessionDuration === 'In Progress') {
+        // Estimate final values for incomplete sessions
+        const session = currentSessions[record.sessionId];
+        const estimatedDuration = session ? 
+          Math.round((now - new Date(session.sessionStart)) / (1000 * 60)) :
+          10; // Default 10 minutes
+        
+        usageData[index].sessionEnd = now.toLocaleTimeString('en-US', estOptions);
+        usageData[index].sessionDuration = estimatedDuration;
+        
+        // Clean up temporary fields
+        delete usageData[index].id;
+        delete usageData[index].sessionId;
+        delete usageData[index].isActive;
+        
+        console.log(`Cleaned up incomplete record during CSV generation: ${estimatedDuration} minutes`);
+      }
+    });
+    
+    // Filter out any malformed records
+    const cleanData = usageData.filter(row => 
+      row.date && row.userName && row.sessionStart && 
+      row.sessionEnd !== 'In Progress' && row.sessionDuration !== 'In Progress'
+    );
+    
+    console.log(`Clean records for CSV: ${cleanData.length}`);
+    console.log('Sample data:', cleanData.slice(0, 2)); // Log first 2 records for debugging
+    
     const csvHeader = 'Date,User Name,Session Start (EST),Session End (EST),Duration (minutes),Prompt\n';
-    const csvRows = usageData.map(row => 
+    const csvRows = cleanData.map(row => 
       `${row.date},"${row.userName}",${row.sessionStart},${row.sessionEnd},${row.sessionDuration},"${row.lastPrompt}"`
     );
     
     const csvContent = csvHeader + csvRows.join('\n');
+    
+    // Save cleaned data back
+    saveUsageData();
     
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename=hubspot-idea-generator-usage-data.csv');
@@ -166,14 +366,39 @@ app.get('/api/download-usage-data', (req, res) => {
   }
 });
 
+// Debug endpoint to check data
+app.get('/api/debug-data', (req, res) => {
+  try {
+    const activeRecords = usageData.filter(r => r.isActive);
+    const completedRecords = usageData.filter(r => !r.isActive);
+    
+    res.json({
+      totalRecords: usageData.length,
+      completedRecords: completedRecords.length,
+      activeRecords: activeRecords.length,
+      activeSessions: Object.keys(currentSessions).length,
+      sampleCompletedData: completedRecords.slice(0, 3),
+      sampleActiveData: activeRecords.slice(0, 3),
+      activeSessionsData: currentSessions
+    });
+  } catch (error) {
+    console.error('Error getting debug data:', error);
+    res.status(500).json({ error: 'Failed to get debug data' });
+  }
+});
+
 // Get usage statistics (optional - for dashboard)
 app.get('/api/usage-stats', (req, res) => {
   try {
+    const completedRecords = usageData.filter(r => !r.isActive && r.sessionDuration !== 'In Progress');
+    
     const stats = {
-      totalSessions: usageData.length,
-      totalIdeas: usageData.reduce((sum, session) => sum + session.ideasGenerated, 0),
-      uniqueUsers: [...new Set(usageData.map(session => session.userName))].length,
-      activeSessions: Object.keys(currentSessions).length
+      totalSessions: completedRecords.length,
+      totalIdeas: completedRecords.length * 7, // Each session generates 7 ideas
+      uniqueUsers: [...new Set(completedRecords.map(session => session.userName))].length,
+      activeSessions: Object.keys(currentSessions).length,
+      averageSessionDuration: completedRecords.length > 0 ? 
+        Math.round(completedRecords.reduce((sum, session) => sum + (session.sessionDuration || 0), 0) / completedRecords.length) : 0
     };
     
     res.json(stats);
@@ -1052,4 +1277,7 @@ app.listen(port, () => {
   console.log(`HubSpot Conversational Marketing Experiment Generator running on http://localhost:${port}`);
   console.log(`Enhanced with 94-experiment library knowledge and current HubSpot ChatFlow capabilities`);
   console.log(`KPI Tracking: Active - Usage data will be stored and available for CSV download`);
+  console.log(`Data file location: ${dataFile}`);
+  console.log(`Loaded ${usageData.length} existing usage records`);
+  console.log(`Current working directory: ${process.cwd()}`);
 });
