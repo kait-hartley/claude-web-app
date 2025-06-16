@@ -1,4 +1,4 @@
-\const express = require('express');
+const express = require('express');
 const cors = require('cors');
 const Anthropic = require('@anthropic-ai/sdk');
 const path = require('path');
@@ -21,7 +21,6 @@ const anthropic = new Anthropic({
 const upload = multer({ dest: 'uploads/' });
 
 // KPI Tracking - File-based storage to persist data
-const path = require('path');
 const dataFile = path.join(__dirname, 'usage-data.json');
 
 // Load existing data on server start
@@ -106,17 +105,37 @@ app.post('/api/end-session', (req, res) => {
     const session = currentSessions[sessionId];
     
     if (session && session.ideasGenerated > 0) {
-      const sessionDuration = Math.round((Date.now() - new Date(session.sessionStart)) / (1000 * 60)); // minutes
+      const sessionEndTime = new Date();
+      const sessionStartTime = new Date(session.sessionStart);
+      const sessionDuration = Math.round((sessionEndTime - sessionStartTime) / (1000 * 60)); // minutes
+      
+      // Format times in EST
+      const estOptions = { 
+        timeZone: 'America/New_York', 
+        hour12: true, 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        second: '2-digit' 
+      };
+      const estDateOptions = { 
+        timeZone: 'America/New_York', 
+        weekday: 'short', 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      };
       
       usageData.push({
-        date: new Date().toDateString(),
+        date: sessionEndTime.toLocaleDateString('en-US', estDateOptions),
         userName: session.userName,
-        sessionStart: new Date(session.sessionStart).toLocaleTimeString(),
-        sessionEnd: new Date().toLocaleTimeString(),
+        sessionStart: sessionStartTime.toLocaleTimeString('en-US', estOptions),
+        sessionEnd: sessionEndTime.toLocaleTimeString('en-US', estOptions),
         sessionDuration,
-        ideasGenerated: session.ideasGenerated,
         lastPrompt: session.lastPrompt ? session.lastPrompt.substring(0, 100) : 'Unknown'
       });
+      
+      // Save to file immediately
+      saveUsageData();
       
       delete currentSessions[sessionId];
     }
@@ -449,6 +468,14 @@ const KPI_CONTEXT = {
   }
 };
 
+// Helper function to clean JSON strings
+const cleanJsonString = (str) => {
+  return str
+    .replace(/[\n\r\t]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
 // File processing function (unchanged)
 async function analyzeUploadedFiles(files) {
   const analysis = {
@@ -752,12 +779,12 @@ Generate 7 ideas that feel custom-created for their exact challenge, with each i
   }
 });
 
-// NEW: Implementation Steps API endpoint
+// FIXED: Implementation Steps API endpoint - Always returns exactly 4 steps
 app.post('/api/implementation-steps', async (req, res) => {
   try {
     const { idea, expectedResult, originalUserInput } = req.body;
     
-    const prompt = `You are a HubSpot conversational marketing implementation expert. Generate exactly 4 high-level, HubSpot-tool-specific implementation steps for this experiment idea.
+    const prompt = `You are a HubSpot conversational marketing implementation expert. Generate EXACTLY 4 high-level, HubSpot-tool-specific implementation steps for this experiment idea.
 
 EXPERIMENT IDEA: "${idea}"
 EXPECTED RESULT: "${expectedResult}"
@@ -776,7 +803,7 @@ IMPLEMENTATION STEP GUIDELINES:
 1. HubSpot-Tool-Specific: Reference actual HubSpot features and navigation paths
 2. High-Level but Actionable: Strategic steps that can be executed
 3. Sequential Order: Steps should build logically from setup to launch
-4. Maximum 4 Steps: Keep it focused and achievable - no more than 4 steps total
+4. EXACTLY 4 Steps: Generate precisely 4 steps - no more, no less
 5. Include Testing: Always include a testing/validation step
 
 STEP FORMAT:
@@ -785,6 +812,8 @@ STEP FORMAT:
 - Keep each step to 1-2 sentences maximum
 - Include key settings or considerations
 
+CRITICAL: You MUST generate exactly 4 steps. Count them to ensure you have exactly 4.
+
 JSON format:
 {
   "implementationSteps": [
@@ -792,11 +821,26 @@ JSON format:
       "stepNumber": 1,
       "title": "[Action Verb] [HubSpot Feature]",
       "description": "[Brief description of what to do in this HubSpot tool/feature]"
+    },
+    {
+      "stepNumber": 2,
+      "title": "[Action Verb] [HubSpot Feature]",
+      "description": "[Brief description of what to do in this HubSpot tool/feature]"
+    },
+    {
+      "stepNumber": 3,
+      "title": "[Action Verb] [HubSpot Feature]",
+      "description": "[Brief description of what to do in this HubSpot tool/feature]"
+    },
+    {
+      "stepNumber": 4,
+      "title": "[Action Verb] [HubSpot Feature]",
+      "description": "[Brief description of what to do in this HubSpot tool/feature]"
     }
   ]
 }
 
-Generate practical HubSpot implementation steps that convert this experiment idea into actionable tasks.`;
+Generate exactly 4 practical HubSpot implementation steps that convert this experiment idea into actionable tasks.`;
 
     const response = await anthropic.messages.create({
       model: 'claude-3-5-sonnet-20241022',
@@ -814,9 +858,15 @@ Generate practical HubSpot implementation steps that convert this experiment ide
     let implementationData;
     
     try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      const cleanedContent = cleanJsonString(content);
+      const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         implementationData = JSON.parse(jsonMatch[0]);
+        
+        // Ensure exactly 4 steps
+        if (!implementationData.implementationSteps || implementationData.implementationSteps.length !== 4) {
+          throw new Error('Did not generate exactly 4 steps');
+        }
       } else {
         throw new Error('No JSON found in implementation response');
       }
@@ -827,7 +877,22 @@ Generate practical HubSpot implementation steps that convert this experiment ide
           {
             stepNumber: 1,
             title: "Configure ChatFlow",
-            description: "Set up basic chatflow in HubSpot Service > Chatflows"
+            description: "Set up basic chatflow in HubSpot Service > Chatflows with appropriate triggers"
+          },
+          {
+            stepNumber: 2,
+            title: "Set Targeting Rules",
+            description: "Configure visitor targeting based on page URL, behavior, or contact properties"
+          },
+          {
+            stepNumber: 3,
+            title: "Test Functionality",
+            description: "Test the chatflow with team members to ensure proper functionality and user experience"
+          },
+          {
+            stepNumber: 4,
+            title: "Launch and Monitor",
+            description: "Deploy to live environment and monitor performance metrics for optimization"
           }
         ]
       };
@@ -840,17 +905,17 @@ Generate practical HubSpot implementation steps that convert this experiment ide
   }
 });
 
-// Enhanced refinement with HubSpot capabilities context
+// FIXED: Enhanced refinement with control character handling
 app.post('/api/refine-idea-custom', async (req, res) => {
   try {
     const { idea, expectedResult, customRefinement, originalUserInput } = req.body;
     
     const prompt = `You are the lead HubSpot conversational marketing strategist refining an experiment idea based on the team's 94-experiment library knowledge and current HubSpot ChatFlow capabilities.
 
-ORIGINAL CONTEXT: "${originalUserInput}"
-CURRENT IDEA: "${idea}"
-CURRENT EXPECTED RESULT: "${expectedResult}"
-REFINEMENT REQUEST: "${customRefinement}"
+ORIGINAL CONTEXT: "${cleanJsonString(originalUserInput)}"
+CURRENT IDEA: "${cleanJsonString(idea)}"
+CURRENT EXPECTED RESULT: "${cleanJsonString(expectedResult)}"
+REFINEMENT REQUEST: "${cleanJsonString(customRefinement)}"
 
 HUBSPOT CHATFLOW CONSTRAINTS:
 ${EXPERIMENT_LIBRARY_CONTEXT.limitations_constraints.join('\n- ')}
@@ -901,7 +966,8 @@ JSON format:
     let refinedIdea;
     
     try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      const cleanedContent = cleanJsonString(content);
+      const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         refinedIdea = JSON.parse(jsonMatch[0]);
       } else {
@@ -963,7 +1029,8 @@ app.post('/api/refine-idea', async (req, res) => {
     let refinedIdea;
     
     try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      const cleanedContent = cleanJsonString(content);
+      const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         refinedIdea = JSON.parse(jsonMatch[0]);
       } else {
