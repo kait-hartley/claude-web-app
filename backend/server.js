@@ -379,6 +379,22 @@ app.post('/api/track-idea', async (req, res) => {
 // End session and update with ACCURATE session duration
 app.post('/api/end-session', async (req, res) => {
   try {
+    // DEBUG: Log the request details
+    console.log('🔍 DEBUG: End session request received');
+    console.log('🔍 DEBUG: req.body:', req.body);
+    console.log('🔍 DEBUG: req.headers:', req.headers['content-type']);
+    
+    // Defensive check for missing body or sessionId
+    if (!req.body || typeof req.body !== 'object') {
+      console.log('❌ ERROR: req.body is missing or invalid:', req.body);
+      return res.status(400).json({ error: 'Invalid request body' });
+    }
+    
+    if (!req.body.sessionId) {
+      console.log('❌ ERROR: sessionId is missing from req.body:', req.body);
+      return res.status(400).json({ error: 'Missing sessionId' });
+    }
+    
     const { sessionId } = req.body;
     const session = currentSessions[sessionId];
     
@@ -409,7 +425,7 @@ app.post('/api/end-session', async (req, res) => {
         delete usageData[recordIndex].sessionId;
         delete usageData[recordIndex].isActive;
         
-        console.log(`Updated session duration for ${session.userName}: ${actualSessionDuration} minutes`);
+        console.log(`✅ Updated session duration for ${session.userName}: ${actualSessionDuration} minutes`);
       } else {
         // Fallback: create record if somehow missing
         const estDateOptions = { 
@@ -418,6 +434,34 @@ app.post('/api/end-session', async (req, res) => {
           month: '2-digit', 
           day: '2-digit' 
         };
+        
+        usageData.push({
+          date: sessionEndTime.toLocaleDateString('en-US', estDateOptions), // MM/DD/YYYY format
+          userName: session.userName,
+          sessionStart: sessionStartTime.toLocaleTimeString('en-US', estOptions),
+          sessionEnd: sessionEndTime.toLocaleTimeString('en-US', estOptions),
+          sessionDuration: actualSessionDuration,
+          lastPrompt: session.lastPrompt ? session.lastPrompt.substring(0, 100) : 'Unknown'
+        });
+        
+        console.log(`✅ Created fallback record for ${session.userName}: ${actualSessionDuration} minutes`);
+      }
+      
+      // Save updated data
+      await saveUsageData();
+      
+      // Clean up session
+      delete currentSessions[sessionId];
+    } else {
+      console.log('⚠️ WARNING: Session not found for sessionId:', sessionId);
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('❌ Error ending session:', error);
+    res.status(500).json({ error: 'Failed to end session' });
+  }
+});
         
         usageData.push({
           date: sessionEndTime.toLocaleDateString('en-US', estDateOptions), // MM/DD/YYYY format
