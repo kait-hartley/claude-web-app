@@ -27,70 +27,113 @@ const dataFile = path.join(__dirname, 'usage-data.json');
 let usageData = [];
 let currentSessions = {}; // Track active sessions
 
-// Function to load data from file
-const loadUsageData = () => {
+// JSONBin.org configuration
+const JSONBIN_API_KEY = process.env.JSONBIN_API_KEY;
+const JSONBIN_BIN_ID = process.env.JSONBIN_BIN_ID; // Will be set after first save
+
+// Function to save data to JSONBin
+const saveUsageData = async () => {
   try {
-    // Try main location first
-    if (fs.existsSync(dataFile)) {
-      const data = fs.readFileSync(dataFile, 'utf8');
-      usageData = JSON.parse(data);
-      console.log(`Loaded ${usageData.length} usage records from main file`);
+    if (!JSONBIN_API_KEY) {
+      console.log('No JSONBin API key found, skipping save');
       return;
     }
-    
-    // Try backup location
-    const altDataFile = path.join(process.cwd(), 'usage-data-backup.json');
-    if (fs.existsSync(altDataFile)) {
-      const data = fs.readFileSync(altDataFile, 'utf8');
-      usageData = JSON.parse(data);
-      console.log(`Loaded ${usageData.length} usage records from backup file`);
-      return;
+
+    const url = JSONBIN_BIN_ID 
+      ? `https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}`
+      : 'https://api.jsonbin.io/v3/b';
+
+    const response = await fetch(url, {
+      method: JSONBIN_BIN_ID ? 'PUT' : 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': JSONBIN_API_KEY,
+        'X-Bin-Name': 'hubspot-usage-data'
+      },
+      body: JSON.stringify(usageData)
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      if (!JSONBIN_BIN_ID && result.metadata && result.metadata.id) {
+        console.log(`First save successful. Set JSONBIN_BIN_ID environment variable to: ${result.metadata.id}`);
+        console.log('Then restart your Render service');
+      }
+      console.log(`Usage data saved to JSONBin. Total records: ${usageData.length}`);
+    } else {
+      throw new Error(`JSONBin save failed: ${response.status}`);
     }
-    
-    console.log('No existing usage data found, starting fresh');
-    usageData = [];
   } catch (error) {
-    console.error('Error loading usage data:', error);
-    usageData = [];
+    console.error('Error saving usage data to JSONBin:', error);
+    // Fallback to local file if JSONBin fails
+    try {
+      const dir = path.dirname(dataFile);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      fs.writeFileSync(dataFile, JSON.stringify(usageData, null, 2));
+      console.log('Fallback: saved to local file');
+    } catch (localError) {
+      console.error('Both JSONBin and local save failed:', localError);
+    }
   }
 };
 
-// Function to save data to file
-const saveUsageData = () => {
+// Function to load data from JSONBin
+const loadUsageData = async () => {
   try {
-    // Ensure directory exists
-    const dir = path.dirname(dataFile);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+    if (!JSONBIN_API_KEY || !JSONBIN_BIN_ID) {
+      console.log('JSONBin not configured, starting with empty data');
+      usageData = [];
+      return;
     }
-    
-    fs.writeFileSync(dataFile, JSON.stringify(usageData, null, 2));
-    console.log(`Usage data saved. Total records: ${usageData.length}`);
+
+    const response = await fetch(`https://api.jsonbin.io/v3/b/${JSONBIN_BIN_ID}/latest`, {
+      headers: {
+        'X-Master-Key': JSONBIN_API_KEY
+      }
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      usageData = result.record || [];
+      console.log(`Loaded ${usageData.length} usage records from JSONBin`);
+    } else {
+      throw new Error(`JSONBin load failed: ${response.status}`);
+    }
   } catch (error) {
-    console.error('Error saving usage data:', error);
-    // Try alternative location if main location fails
+    console.error('Error loading usage data from JSONBin:', error);
+    // Fallback to local file
     try {
-      const altDataFile = path.join(process.cwd(), 'usage-data-backup.json');
-      fs.writeFileSync(altDataFile, JSON.stringify(usageData, null, 2));
-      console.log('Data saved to backup location');
-    } catch (altError) {
-      console.error('Error saving to backup location:', altError);
+      if (fs.existsSync(dataFile)) {
+        const data = fs.readFileSync(dataFile, 'utf8');
+        usageData = JSON.parse(data);
+        console.log(`Fallback: loaded ${usageData.length} records from local file`);
+      } else {
+        console.log('No local file found, starting fresh');
+        usageData = [];
+      }
+    } catch (localError) {
+      console.error('Both JSONBin and local load failed:', localError);
+      usageData = [];
     }
   }
 };
 
 // Load existing data when server starts
-loadUsageData();
+(async () => {
+  await loadUsageData();
+})();
 
 // Periodic save every 5 minutes as backup
-setInterval(() => {
+setInterval(async () => {
   if (usageData.length > 0) {
-    saveUsageData();
+    await saveUsageData();
   }
 }, 5 * 60 * 1000); // 5 minutes
 
 // Cleanup abandoned sessions every 30 minutes
-setInterval(() => {
+setInterval(async () => {
   const now = new Date();
   const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
   
@@ -112,10 +155,21 @@ setInterval(() => {
           minute: '2-digit', 
           second: '2-digit' 
         };
+        const estDateOptions = { 
+          timeZone: 'America/New_York',
+          year: 'numeric', 
+          month: '2-digit', 
+          day: '2-digit' 
+        };
         
         usageData[index].sessionEnd = (session ? new Date(session.lastActivity) : now).toLocaleTimeString('en-US', estOptions);
         usageData[index].sessionDuration = estimatedDuration;
         usageData[index].isActive = false;
+        
+        // Ensure date is properly formatted
+        if (!usageData[index].date || usageData[index].date.includes('Mon') || usageData[index].date.includes('Tue')) {
+          usageData[index].date = now.toLocaleDateString('en-US', estDateOptions);
+        }
         
         // Clean up temporary fields
         delete usageData[index].id;
@@ -131,7 +185,7 @@ setInterval(() => {
     }
   });
   
-  saveUsageData();
+  await saveUsageData();
 }, 30 * 60 * 1000); // 30 minutes
 
 app.use(cors());
@@ -163,7 +217,7 @@ app.post('/api/start-session', (req, res) => {
 });
 
 // Track each idea generation - SAVE BASIC DATA IMMEDIATELY, UPDATE DURATION LATER
-app.post('/api/track-idea', (req, res) => {
+app.post('/api/track-idea', async (req, res) => {
   try {
     const { sessionId, promptUsed } = req.body;
     
@@ -186,11 +240,10 @@ app.post('/api/track-idea', (req, res) => {
         second: '2-digit' 
       };
       const estDateOptions = { 
-        timeZone: 'America/New_York', 
-        weekday: 'short', 
+        timeZone: 'America/New_York',
         year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
+        month: '2-digit', 
+        day: '2-digit' 
       };
       
       // Create unique record ID to avoid duplicates
@@ -200,7 +253,7 @@ app.post('/api/track-idea', (req, res) => {
       const newRecord = {
         id: recordId,
         sessionId: sessionId,
-        date: recordTime.toLocaleDateString('en-US', estDateOptions),
+        date: recordTime.toLocaleDateString('en-US', estDateOptions), // MM/DD/YYYY format
         userName: session.userName,
         sessionStart: sessionStartTime.toLocaleTimeString('en-US', estOptions),
         sessionEnd: 'In Progress', // Will be updated when session ends
@@ -221,7 +274,7 @@ app.post('/api/track-idea', (req, res) => {
       }
       
       // Save to file immediately
-      saveUsageData();
+      await saveUsageData();
       
       console.log(`Data saved for user: ${session.userName}, Total records: ${usageData.length}`);
     }
@@ -234,7 +287,7 @@ app.post('/api/track-idea', (req, res) => {
 });
 
 // End session and update with ACCURATE session duration
-app.post('/api/end-session', (req, res) => {
+app.post('/api/end-session', async (req, res) => {
   try {
     const { sessionId } = req.body;
     const session = currentSessions[sessionId];
@@ -270,15 +323,14 @@ app.post('/api/end-session', (req, res) => {
       } else {
         // Fallback: create record if somehow missing
         const estDateOptions = { 
-          timeZone: 'America/New_York', 
-          weekday: 'short', 
+          timeZone: 'America/New_York',
           year: 'numeric', 
-          month: 'short', 
-          day: 'numeric' 
+          month: '2-digit', 
+          day: '2-digit' 
         };
         
         usageData.push({
-          date: sessionEndTime.toLocaleDateString('en-US', estDateOptions),
+          date: sessionEndTime.toLocaleDateString('en-US', estDateOptions), // MM/DD/YYYY format
           userName: session.userName,
           sessionStart: sessionStartTime.toLocaleTimeString('en-US', estOptions),
           sessionEnd: sessionEndTime.toLocaleTimeString('en-US', estOptions),
@@ -290,7 +342,7 @@ app.post('/api/end-session', (req, res) => {
       }
       
       // Save updated data
-      saveUsageData();
+      await saveUsageData();
       
       // Clean up session
       delete currentSessions[sessionId];
@@ -304,7 +356,7 @@ app.post('/api/end-session', (req, res) => {
 });
 
 // CSV download endpoint - provides ALL usage data from all users
-app.get('/api/download-usage-data', (req, res) => {
+app.get('/api/download-usage-data', async (req, res) => {
   try {
     console.log(`CSV Download requested. Total records: ${usageData.length}`);
     
@@ -317,6 +369,12 @@ app.get('/api/download-usage-data', (req, res) => {
       minute: '2-digit', 
       second: '2-digit' 
     };
+    const estDateOptions = { 
+      timeZone: 'America/New_York',
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit' 
+    };
     
     usageData.forEach((record, index) => {
       if (record.sessionEnd === 'In Progress' || record.sessionDuration === 'In Progress') {
@@ -328,6 +386,11 @@ app.get('/api/download-usage-data', (req, res) => {
         
         usageData[index].sessionEnd = now.toLocaleTimeString('en-US', estOptions);
         usageData[index].sessionDuration = estimatedDuration;
+        
+        // Ensure date is properly formatted
+        if (!usageData[index].date || usageData[index].date.includes('Mon') || usageData[index].date.includes('Tue')) {
+          usageData[index].date = now.toLocaleDateString('en-US', estDateOptions);
+        }
         
         // Clean up temporary fields
         delete usageData[index].id;
@@ -348,14 +411,20 @@ app.get('/api/download-usage-data', (req, res) => {
     console.log('Sample data:', cleanData.slice(0, 2)); // Log first 2 records for debugging
     
     const csvHeader = 'Date,User Name,Session Start (EST),Session End (EST),Duration (minutes),Prompt\n';
-    const csvRows = cleanData.map(row => 
-      `${row.date},"${row.userName}",${row.sessionStart},${row.sessionEnd},${row.sessionDuration},"${row.lastPrompt}"`
-    );
+    const csvRows = cleanData.map(row => {
+      // Clean up the prompt text to avoid CSV issues
+      const cleanPrompt = (row.lastPrompt || 'Unknown')
+        .replace(/"/g, '""') // Escape quotes
+        .replace(/[\r\n]/g, ' ') // Remove line breaks
+        .substring(0, 100);
+      
+      return `"${row.date}","${row.userName}","${row.sessionStart}","${row.sessionEnd}","${row.sessionDuration}","${cleanPrompt}"`;
+    });
     
     const csvContent = csvHeader + csvRows.join('\n');
     
     // Save cleaned data back
-    saveUsageData();
+    await saveUsageData();
     
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename=hubspot-idea-generator-usage-data.csv');
@@ -1277,7 +1346,7 @@ app.listen(port, () => {
   console.log(`HubSpot Conversational Marketing Experiment Generator running on http://localhost:${port}`);
   console.log(`Enhanced with 94-experiment library knowledge and current HubSpot ChatFlow capabilities`);
   console.log(`KPI Tracking: Active - Usage data will be stored and available for CSV download`);
-  console.log(`Data file location: ${dataFile}`);
+  console.log(`JSONBin API Key: ${JSONBIN_API_KEY ? 'Configured' : 'Missing - data will not persist across restarts'}`);
+  console.log(`JSONBin Bin ID: ${JSONBIN_BIN_ID ? 'Configured' : 'Missing - will be set after first save'}`);
   console.log(`Loaded ${usageData.length} existing usage records`);
-  console.log(`Current working directory: ${process.cwd()}`);
 });
