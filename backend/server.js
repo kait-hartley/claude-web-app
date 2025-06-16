@@ -12,7 +12,7 @@ require('dotenv').config();
 const app = express();
 const port = process.env.PORT || 3002;
 
-// ✅ CRITICAL: Middleware MUST be here - BEFORE any routes!
+// Middleware
 app.use(cors());
 app.use(express.json());
 
@@ -21,7 +21,7 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-// Enhanced API call with retry logic for overload errors
+// Enhanced API call with retry logic
 async function callAnthropicWithRetry(anthropic, requestConfig, maxRetries = 3, baseDelay = 2000) {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -38,18 +38,15 @@ async function callAnthropicWithRetry(anthropic, requestConfig, maxRetries = 3, 
       const isRateLimitError = error.status === 429;
       
       if ((isOverloadError || isRateLimitError) && attempt < maxRetries) {
-        // Exponential backoff: 2s, 4s, 8s, etc.
         const delay = baseDelay * Math.pow(2, attempt - 1);
         
         console.log(`⚠️ Anthropic API ${isOverloadError ? 'overloaded' : 'rate limited'} (attempt ${attempt}/${maxRetries})`);
         console.log(`🔄 Retrying in ${delay/1000} seconds...`);
         
-        // Wait before retrying
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
         
       } else {
-        // Re-throw error if not retryable or max attempts reached
         console.error(`❌ Anthropic API error after ${attempt} attempts:`, {
           status: error.status,
           type: error.error?.type,
@@ -66,16 +63,16 @@ const upload = multer({ dest: 'uploads/' });
 
 // GitHub Storage Configuration
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const GITHUB_OWNER = process.env.GITHUB_OWNER; // Your GitHub username
-const GITHUB_REPO = process.env.GITHUB_REPO; // Repository name
-const GITHUB_FILE_PATH = 'usage-data.json'; // File path in the repo
+const GITHUB_OWNER = process.env.GITHUB_OWNER;
+const GITHUB_REPO = process.env.GITHUB_REPO;
+const GITHUB_FILE_PATH = 'usage-data.json';
 
 // Local storage configuration
 const dataFile = path.join(__dirname, 'usage-data.json');
 
 // Load existing data on server start
 let usageData = [];
-let currentSessions = {}; // Track active sessions
+let currentSessions = {};
 
 // GitHub API helper
 const githubAPI = async (method, endpoint, data = null) => {
@@ -98,7 +95,7 @@ const githubAPI = async (method, endpoint, data = null) => {
   return { response, data: response.ok ? await response.json() : null };
 };
 
-// ENHANCED: Save data to GitHub with retry logic for 409 conflicts
+// Save data to GitHub with retry logic
 const saveUsageData = async (retryCount = 0) => {
   try {
     if (!GITHUB_TOKEN || !GITHUB_OWNER || !GITHUB_REPO) {
@@ -109,7 +106,6 @@ const saveUsageData = async (retryCount = 0) => {
 
     console.log(`Saving ${usageData.length} records to GitHub... (attempt ${retryCount + 1})`);
     
-    // Get current file to get SHA (required for updates)
     const { response: getResponse, data: currentFile } = await githubAPI('GET', `contents/${GITHUB_FILE_PATH}`);
     
     const fileContent = Buffer.from(JSON.stringify(usageData, null, 2)).toString('base64');
@@ -119,7 +115,6 @@ const saveUsageData = async (retryCount = 0) => {
       branch: 'main'
     };
     
-    // If file exists, include SHA for update
     if (getResponse.ok && currentFile && currentFile.sha) {
       commitData.sha = currentFile.sha;
     }
@@ -129,9 +124,8 @@ const saveUsageData = async (retryCount = 0) => {
     if (saveResponse.ok) {
       console.log(`✅ Usage data saved to GitHub successfully! Total records: ${usageData.length}`);
     } else if (saveResponse.status === 409 && retryCount < 3) {
-      // Handle SHA conflict by retrying with fresh SHA
       console.log(`⚠️ GitHub save conflict (409), retrying... (attempt ${retryCount + 1}/3)`);
-      await new Promise(resolve => setTimeout(resolve, 1000 + (retryCount * 500))); // Progressive delay
+      await new Promise(resolve => setTimeout(resolve, 1000 + (retryCount * 500)));
       return await saveUsageData(retryCount + 1);
     } else {
       throw new Error(`GitHub save failed: ${saveResponse.status}`);
@@ -212,32 +206,28 @@ const loadFromLocalFile = () => {
 };
 
 // Load existing data when server starts
-(async () => {
-  await loadUsageData();
-})();
+loadUsageData();
 
-// Periodic save every 5 minutes as backup
+// Periodic save every 5 minutes
 setInterval(async () => {
   if (usageData.length > 0) {
     await saveUsageData();
   }
-}, 5 * 60 * 1000); // 5 minutes
+}, 5 * 60 * 1000);
 
 // Cleanup abandoned sessions every 30 minutes
 setInterval(async () => {
   const now = new Date();
   const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
   
-  // Find records that are still "In Progress" but haven't been active for 30+ minutes
   usageData.forEach((record, index) => {
     if (record.isActive && record.sessionId) {
       const session = currentSessions[record.sessionId];
       
       if (!session || new Date(session.lastActivity) < thirtyMinutesAgo) {
-        // Session is abandoned, estimate duration and mark complete
         const estimatedDuration = session ? 
           Math.round((new Date(session.lastActivity) - new Date(session.sessionStart)) / (1000 * 60)) :
-          15; // Default 15 minutes if no session data
+          15;
         
         const estOptions = { 
           timeZone: 'America/New_York', 
@@ -257,18 +247,15 @@ setInterval(async () => {
         usageData[index].sessionDuration = estimatedDuration;
         usageData[index].isActive = false;
         
-        // Ensure date is properly formatted
         if (!usageData[index].date || usageData[index].date.includes('Mon') || usageData[index].date.includes('Tue')) {
           usageData[index].date = now.toLocaleDateString('en-US', estDateOptions);
         }
         
-        // Clean up temporary fields
         delete usageData[index].id;
         delete usageData[index].sessionId;
         
         console.log(`Cleaned up abandoned session for ${record.userName}, estimated duration: ${estimatedDuration} minutes`);
         
-        // Remove from active sessions
         if (session) {
           delete currentSessions[record.sessionId];
         }
@@ -277,7 +264,7 @@ setInterval(async () => {
   });
   
   await saveUsageData();
-}, 30 * 60 * 1000); // 30 minutes
+}, 30 * 60 * 1000);
 
 // Serve React build files
 app.use(express.static(path.join(__dirname, '../frontend/build')));
@@ -304,7 +291,7 @@ app.post('/api/start-session', (req, res) => {
   }
 });
 
-// Track each idea generation - SAVE BASIC DATA IMMEDIATELY, UPDATE DURATION LATER
+// Track idea generation
 app.post('/api/track-idea', async (req, res) => {
   try {
     const { sessionId, promptUsed } = req.body;
@@ -314,12 +301,10 @@ app.post('/api/track-idea', async (req, res) => {
       currentSessions[sessionId].lastPrompt = promptUsed;
       currentSessions[sessionId].lastActivity = new Date().toISOString();
       
-      // Save basic data immediately to ensure persistence
       const session = currentSessions[sessionId];
       const recordTime = new Date();
       const sessionStartTime = new Date(session.sessionStart);
       
-      // Format times in EST
       const estOptions = { 
         timeZone: 'America/New_York', 
         hour12: true, 
@@ -334,34 +319,28 @@ app.post('/api/track-idea', async (req, res) => {
         day: '2-digit' 
       };
       
-      // Create unique record ID to avoid duplicates
       const recordId = `${sessionId}_${Date.now()}`;
       
-      // Save basic data immediately with preliminary duration
       const newRecord = {
         id: recordId,
         sessionId: sessionId,
-        date: recordTime.toLocaleDateString('en-US', estDateOptions), // MM/DD/YYYY format
+        date: recordTime.toLocaleDateString('en-US', estDateOptions),
         userName: session.userName,
         sessionStart: sessionStartTime.toLocaleTimeString('en-US', estOptions),
-        sessionEnd: 'In Progress', // Will be updated when session ends
-        sessionDuration: 'In Progress', // Will be calculated when session ends
+        sessionEnd: 'In Progress',
+        sessionDuration: 'In Progress',
         lastPrompt: session.lastPrompt ? session.lastPrompt.substring(0, 100) : 'Unknown',
-        isActive: true // Mark as active session
+        isActive: true
       };
       
-      // Check if we already have a record for this session
       const existingIndex = usageData.findIndex(record => record.sessionId === sessionId);
       
       if (existingIndex >= 0) {
-        // Update existing record
         usageData[existingIndex] = newRecord;
       } else {
-        // Add new record
         usageData.push(newRecord);
       }
       
-      // Save to GitHub in background - don't wait for it
       saveUsageData().catch(error => {
         console.error('Background save to GitHub failed:', error);
       });
@@ -376,15 +355,12 @@ app.post('/api/track-idea', async (req, res) => {
   }
 });
 
-// End session and update with ACCURATE session duration
+// End session
 app.post('/api/end-session', async (req, res) => {
   try {
-    // DEBUG: Log the request details
     console.log('🔍 DEBUG: End session request received');
     console.log('🔍 DEBUG: req.body:', req.body);
-    console.log('🔍 DEBUG: req.headers:', req.headers['content-type']);
     
-    // Defensive check for missing body or sessionId
     if (!req.body || typeof req.body !== 'object') {
       console.log('❌ ERROR: req.body is missing or invalid:', req.body);
       return res.status(400).json({ error: 'Invalid request body' });
@@ -401,9 +377,8 @@ app.post('/api/end-session', async (req, res) => {
     if (session) {
       const sessionEndTime = new Date();
       const sessionStartTime = new Date(session.sessionStart);
-      const actualSessionDuration = Math.round((sessionEndTime - sessionStartTime) / (1000 * 60)); // minutes
+      const actualSessionDuration = Math.round((sessionEndTime - sessionStartTime) / (1000 * 60));
       
-      // Format end time in EST
       const estOptions = { 
         timeZone: 'America/New_York', 
         hour12: true, 
@@ -412,7 +387,6 @@ app.post('/api/end-session', async (req, res) => {
         second: '2-digit' 
       };
       
-      // Find and update the existing record with accurate session duration
       const recordIndex = usageData.findIndex(record => record.sessionId === sessionId);
       
       if (recordIndex >= 0) {
@@ -420,14 +394,12 @@ app.post('/api/end-session', async (req, res) => {
         usageData[recordIndex].sessionDuration = actualSessionDuration;
         usageData[recordIndex].isActive = false;
         
-        // Remove temporary fields not needed in CSV
         delete usageData[recordIndex].id;
         delete usageData[recordIndex].sessionId;
         delete usageData[recordIndex].isActive;
         
         console.log(`✅ Updated session duration for ${session.userName}: ${actualSessionDuration} minutes`);
       } else {
-        // Fallback: create record if somehow missing
         const estDateOptions = { 
           timeZone: 'America/New_York',
           year: 'numeric', 
@@ -436,7 +408,7 @@ app.post('/api/end-session', async (req, res) => {
         };
         
         usageData.push({
-          date: sessionEndTime.toLocaleDateString('en-US', estDateOptions), // MM/DD/YYYY format
+          date: sessionEndTime.toLocaleDateString('en-US', estDateOptions),
           userName: session.userName,
           sessionStart: sessionStartTime.toLocaleTimeString('en-US', estOptions),
           sessionEnd: sessionEndTime.toLocaleTimeString('en-US', estOptions),
@@ -444,13 +416,10 @@ app.post('/api/end-session', async (req, res) => {
           lastPrompt: session.lastPrompt ? session.lastPrompt.substring(0, 100) : 'Unknown'
         });
         
-        console.log(`✅ Created fallback record for ${session.userName}: ${actualSessionDuration} minutes`);
+        console.log(`Created fallback record for ${session.userName}: ${actualSessionDuration} minutes`);
       }
       
-      // Save updated data
       await saveUsageData();
-      
-      // Clean up session
       delete currentSessions[sessionId];
     } else {
       console.log('⚠️ WARNING: Session not found for sessionId:', sessionId);
@@ -462,39 +431,12 @@ app.post('/api/end-session', async (req, res) => {
     res.status(500).json({ error: 'Failed to end session' });
   }
 });
-        
-        usageData.push({
-          date: sessionEndTime.toLocaleDateString('en-US', estDateOptions), // MM/DD/YYYY format
-          userName: session.userName,
-          sessionStart: sessionStartTime.toLocaleTimeString('en-US', estOptions),
-          sessionEnd: sessionEndTime.toLocaleTimeString('en-US', estOptions),
-          sessionDuration: actualSessionDuration,
-          lastPrompt: session.lastPrompt ? session.lastPrompt.substring(0, 100) : 'Unknown'
-        });
-        
-        console.log(`Created fallback record for ${session.userName}: ${actualSessionDuration} minutes`);
-      }
-      
-      // Save updated data
-      await saveUsageData();
-      
-      // Clean up session
-      delete currentSessions[sessionId];
-    }
-    
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error ending session:', error);
-    res.status(500).json({ error: 'Failed to end session' });
-  }
-});
 
-// CSV download endpoint - provides ALL usage data from all users
+// CSV download endpoint
 app.get('/api/download-usage-data', async (req, res) => {
   try {
     console.log(`CSV Download requested. Total records: ${usageData.length}`);
     
-    // Clean up any remaining "In Progress" sessions before CSV generation
     const now = new Date();
     const estOptions = { 
       timeZone: 'America/New_York', 
@@ -512,21 +454,18 @@ app.get('/api/download-usage-data', async (req, res) => {
     
     usageData.forEach((record, index) => {
       if (record.sessionEnd === 'In Progress' || record.sessionDuration === 'In Progress') {
-        // Estimate final values for incomplete sessions
         const session = currentSessions[record.sessionId];
         const estimatedDuration = session ? 
           Math.round((now - new Date(session.sessionStart)) / (1000 * 60)) :
-          10; // Default 10 minutes
+          10;
         
         usageData[index].sessionEnd = now.toLocaleTimeString('en-US', estOptions);
         usageData[index].sessionDuration = estimatedDuration;
         
-        // Ensure date is properly formatted
         if (!usageData[index].date || usageData[index].date.includes('Mon') || usageData[index].date.includes('Tue')) {
           usageData[index].date = now.toLocaleDateString('en-US', estDateOptions);
         }
         
-        // Clean up temporary fields
         delete usageData[index].id;
         delete usageData[index].sessionId;
         delete usageData[index].isActive;
@@ -535,21 +474,19 @@ app.get('/api/download-usage-data', async (req, res) => {
       }
     });
     
-    // Filter out any malformed records
     const cleanData = usageData.filter(row => 
       row.date && row.userName && row.sessionStart && 
       row.sessionEnd !== 'In Progress' && row.sessionDuration !== 'In Progress'
     );
     
     console.log(`Clean records for CSV: ${cleanData.length}`);
-    console.log('Sample data:', cleanData.slice(0, 2)); // Log first 2 records for debugging
+    console.log('Sample data:', cleanData.slice(0, 2));
     
     const csvHeader = 'Date,User Name,Session Start (EST),Session End (EST),Duration (minutes),Prompt\n';
     const csvRows = cleanData.map(row => {
-      // Clean up the prompt text to avoid CSV issues
       const cleanPrompt = (row.lastPrompt || 'Unknown')
-        .replace(/"/g, '""') // Escape quotes
-        .replace(/[\r\n]/g, ' ') // Remove line breaks
+        .replace(/"/g, '""')
+        .replace(/[\r\n]/g, ' ')
         .substring(0, 100);
       
       return `"${row.date}","${row.userName}","${row.sessionStart}","${row.sessionEnd}","${row.sessionDuration}","${cleanPrompt}"`;
@@ -557,7 +494,6 @@ app.get('/api/download-usage-data', async (req, res) => {
     
     const csvContent = csvHeader + csvRows.join('\n');
     
-    // Save cleaned data back
     await saveUsageData();
     
     res.setHeader('Content-Type', 'text/csv');
@@ -569,7 +505,7 @@ app.get('/api/download-usage-data', async (req, res) => {
   }
 });
 
-// Debug endpoint to check data
+// Debug endpoint
 app.get('/api/debug-data', (req, res) => {
   try {
     const activeRecords = usageData.filter(r => r.isActive);
@@ -590,14 +526,14 @@ app.get('/api/debug-data', (req, res) => {
   }
 });
 
-// Get usage statistics (optional - for dashboard)
+// Usage statistics endpoint
 app.get('/api/usage-stats', (req, res) => {
   try {
     const completedRecords = usageData.filter(r => !r.isActive && r.sessionDuration !== 'In Progress');
     
     const stats = {
       totalSessions: completedRecords.length,
-      totalIdeas: completedRecords.length * 7, // Each session generates 7 ideas
+      totalIdeas: completedRecords.length * 7,
       uniqueUsers: [...new Set(completedRecords.map(session => session.userName))].length,
       activeSessions: Object.keys(currentSessions).length,
       averageSessionDuration: completedRecords.length > 0 ? 
@@ -611,7 +547,72 @@ app.get('/api/usage-stats', (req, res) => {
   }
 });
 
-// UPDATED: Real-time Team Context from 2025 Marketing-ISC Performance Readout
+// Helper function to clean JSON strings
+const cleanJsonString = (str) => {
+  return str
+    .replace(/[\n\r\t]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+// File processing function
+async function analyzeUploadedFiles(files) {
+  const analysis = {
+    previousExperiments: [],
+    currentMetrics: {},
+    identifiedProblems: [],
+    userContext: "",
+    alreadyTested: []
+  };
+
+  for (const file of files) {
+    let content = "";
+    
+    try {
+      if (file.mimetype.includes('sheet') || file.originalname.includes('.xlsx') || file.originalname.includes('.xls')) {
+        const workbook = XLSX.readFile(file.path);
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        content = XLSX.utils.sheet_to_csv(worksheet);
+        
+        const rows = content.split('\n');
+        rows.forEach(row => {
+          if (row.toLowerCase().includes('experiment') || row.toLowerCase().includes('test')) {
+            analysis.previousExperiments.push(row);
+          }
+          if (row.toLowerCase().includes('failed') || row.toLowerCase().includes('didn\'t work') || row.toLowerCase().includes('no impact')) {
+            analysis.alreadyTested.push(row);
+          }
+        });
+      }
+      
+      if (file.mimetype.includes('pdf')) {
+        const buffer = fs.readFileSync(file.path);
+        const data = await pdfParse(buffer);
+        content = data.text;
+      }
+      
+      if (file.mimetype.includes('document')) {
+        const result = await mammoth.extractRawText({path: file.path});
+        content = result.value;
+      }
+      
+      if (file.mimetype.includes('text') || file.originalname.includes('.txt') || file.originalname.includes('.csv')) {
+        content = fs.readFileSync(file.path, 'utf8');
+      }
+      
+      analysis.userContext += content + "\n\n";
+      fs.unlinkSync(file.path);
+      
+    } catch (error) {
+      console.error('Error processing file:', file.originalname, error);
+    }
+  }
+  
+  return analysis;
+}
+
+// Team Context Data
 const CURRENT_TEAM_CONTEXT = {
   active_strategic_initiatives: {
     'ISC_Closing_Low_Pro_Pilot': {
@@ -850,7 +851,7 @@ const EXPERIMENT_LIBRARY_CONTEXT = {
   ]
 };
 
-// Enhanced KPI Context with HubSpot-specific implementation guidance
+// KPI Context
 const KPI_CONTEXT = {
   engagement_rate: {
     definition: "Bot Engagement divided by Page Views - measures how many visitors actually start interacting with the chatbot",
@@ -896,72 +897,7 @@ const KPI_CONTEXT = {
   }
 };
 
-// Helper function to clean JSON strings
-const cleanJsonString = (str) => {
-  return str
-    .replace(/[\n\r\t]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-};
-
-// File processing function (unchanged)
-async function analyzeUploadedFiles(files) {
-  const analysis = {
-    previousExperiments: [],
-    currentMetrics: {},
-    identifiedProblems: [],
-    userContext: "",
-    alreadyTested: []
-  };
-
-  for (const file of files) {
-    let content = "";
-    
-    try {
-      if (file.mimetype.includes('sheet') || file.originalname.includes('.xlsx') || file.originalname.includes('.xls')) {
-        const workbook = XLSX.readFile(file.path);
-        const sheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[sheetName];
-        content = XLSX.utils.sheet_to_csv(worksheet);
-        
-        const rows = content.split('\n');
-        rows.forEach(row => {
-          if (row.toLowerCase().includes('experiment') || row.toLowerCase().includes('test')) {
-            analysis.previousExperiments.push(row);
-          }
-          if (row.toLowerCase().includes('failed') || row.toLowerCase().includes('didn\'t work') || row.toLowerCase().includes('no impact')) {
-            analysis.alreadyTested.push(row);
-          }
-        });
-      }
-      
-      if (file.mimetype.includes('pdf')) {
-        const buffer = fs.readFileSync(file.path);
-        const data = await pdfParse(buffer);
-        content = data.text;
-      }
-      
-      if (file.mimetype.includes('document')) {
-        const result = await mammoth.extractRawText({path: file.path});
-        content = result.value;
-      }
-      
-      if (file.mimetype.includes('text') || file.originalname.includes('.txt') || file.originalname.includes('.csv')) {
-        content = fs.readFileSync(file.path, 'utf8');
-      }
-      
-      analysis.userContext += content + "\n\n";
-      fs.unlinkSync(file.path);
-      
-    } catch (error) {
-      console.error('Error processing file:', file.originalname, error);
-    }
-  }
-  
-  return analysis;
-}
-
-// ENHANCED: Main idea generation with retry logic - NOW GENERATES 7 IDEAS
+// Main idea generation endpoint
 app.post('/api/generate-ideas', upload.array('files'), async (req, res) => {
   try {
     const { userInput, selectedKPI, customKPI } = req.body;
@@ -1050,7 +986,6 @@ JSON format:
 
 Generate 7 ideas that feel custom-created for their exact challenge, with each idea offering a genuinely different approach to solving THEIR specific problem.`;
 
-    // Use enhanced retry logic
     const response = await callAnthropicWithRetry(anthropic, {
       model: 'claude-3-5-sonnet-20241022',
       max_tokens: 6000,
@@ -1061,7 +996,7 @@ Generate 7 ideas that feel custom-created for their exact challenge, with each i
           content: enhancedPrompt
         }
       ]
-    }, 3, 2000); // 3 retries, 2 second base delay
+    }, 3, 2000);
 
     const content = response.content[0].text;
     let ideas;
@@ -1090,7 +1025,6 @@ Generate 7 ideas that feel custom-created for their exact challenge, with each i
   } catch (error) {
     console.error('Error generating ideas:', error);
     
-    // Enhanced error response based on error type
     if (error.status === 529) {
       res.status(503).json({ 
         error: 'AI service temporarily overloaded. Please try again in a few moments.',
@@ -1112,7 +1046,7 @@ Generate 7 ideas that feel custom-created for their exact challenge, with each i
   }
 });
 
-// ENHANCED: Implementation Steps API endpoint with retry logic
+// Implementation steps endpoint
 app.post('/api/implementation-steps', async (req, res) => {
   try {
     const { idea, expectedResult, originalUserInput } = req.body;
@@ -1175,7 +1109,6 @@ JSON format:
 
 Generate exactly 4 practical HubSpot implementation steps that convert this experiment idea into actionable tasks.`;
 
-    // Use enhanced retry logic
     const response = await callAnthropicWithRetry(anthropic, {
       model: 'claude-3-5-sonnet-20241022',
       max_tokens: 2000,
@@ -1186,7 +1119,7 @@ Generate exactly 4 practical HubSpot implementation steps that convert this expe
           content: prompt
         }
       ]
-    }, 3, 1500); // 3 retries, 1.5 second base delay
+    }, 3, 1500);
 
     const content = response.content[0].text;
     let implementationData;
@@ -1197,7 +1130,6 @@ Generate exactly 4 practical HubSpot implementation steps that convert this expe
       if (jsonMatch) {
         implementationData = JSON.parse(jsonMatch[0]);
         
-        // Ensure exactly 4 steps
         if (!implementationData.implementationSteps || implementationData.implementationSteps.length !== 4) {
           throw new Error('Did not generate exactly 4 steps');
         }
@@ -1237,7 +1169,6 @@ Generate exactly 4 practical HubSpot implementation steps that convert this expe
   } catch (error) {
     console.error('Error generating implementation steps:', error);
     
-    // Enhanced error response
     if (error.status === 529) {
       res.status(503).json({ 
         error: 'AI service temporarily overloaded. Please try again in a few moments.',
@@ -1259,7 +1190,7 @@ Generate exactly 4 practical HubSpot implementation steps that convert this expe
   }
 });
 
-// ENHANCED: Custom refinement with retry logic
+// Custom refinement endpoint
 app.post('/api/refine-idea-custom', async (req, res) => {
   try {
     const { idea, expectedResult, customRefinement, originalUserInput } = req.body;
@@ -1304,7 +1235,6 @@ JSON format:
   "sources": ["[EXACT experiment name from library]", "[Specific source or current performance metric]"]
 }`;
 
-    // Use enhanced retry logic
     const response = await callAnthropicWithRetry(anthropic, {
       model: 'claude-3-5-sonnet-20241022',
       max_tokens: 2000,
@@ -1315,7 +1245,7 @@ JSON format:
           content: prompt
         }
       ]
-    }, 3, 1500); // 3 retries, 1.5 second base delay
+    }, 3, 1500);
 
     const content = response.content[0].text;
     let refinedIdea;
@@ -1342,7 +1272,6 @@ JSON format:
   } catch (error) {
     console.error('Error refining idea:', error);
     
-    // Enhanced error response
     if (error.status === 529) {
       res.status(503).json({ 
         error: 'AI service temporarily overloaded. Please try again in a few moments.',
@@ -1362,7 +1291,7 @@ JSON format:
   }
 });
 
-// Keep original refinement endpoint for backward compatibility
+// Legacy refinement endpoint for backward compatibility
 app.post('/api/refine-idea', async (req, res) => {
   try {
     const { idea, expectedResult, refinementType } = req.body;
@@ -1386,7 +1315,6 @@ app.post('/api/refine-idea', async (req, res) => {
     
     prompt += '\n\nEnsure the refined idea is implementable through HubSpot ChatFlow capabilities and avoids the 94 already-tested experiment patterns.\n\nSOURCES CITATION: Use EXACT experiment names (like "Bot378 Salesbot: Onsite | EN | Partners") or ANY legitimate external source (like "HubSpot State of Marketing Report 2024", "Drift Conversational Marketing Benchmark", "Forrester AI Research"), never generic references.\n\nReturn JSON format: {"idea": "refined idea", "expectedResult": "refined result", "sources": ["[EXACT experiment name OR specific external source]", "[Another specific source]"]}';
 
-    // Use enhanced retry logic
     const response = await callAnthropicWithRetry(anthropic, {
       model: 'claude-3-5-sonnet-20241022',
       max_tokens: 1500,
@@ -1397,7 +1325,7 @@ app.post('/api/refine-idea', async (req, res) => {
           content: prompt
         }
       ]
-    }, 3, 1000); // 3 retries, 1 second base delay
+    }, 3, 1000);
 
     const content = response.content[0].text;
     let refinedIdea;
@@ -1420,7 +1348,6 @@ app.post('/api/refine-idea', async (req, res) => {
   } catch (error) {
     console.error('Error:', error);
     
-    // Enhanced error response
     if (error.status === 529) {
       res.status(503).json({ 
         error: 'AI service temporarily overloaded. Please try again in a few moments.',
@@ -1440,6 +1367,7 @@ app.post('/api/refine-idea', async (req, res) => {
   }
 });
 
+// Start server
 app.listen(port, () => {
   console.log(`HubSpot Conversational Marketing Experiment Generator running on http://localhost:${port}`);
   console.log(`Enhanced with 94-experiment library knowledge and current HubSpot ChatFlow capabilities`);
