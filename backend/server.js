@@ -226,8 +226,8 @@ setInterval(async () => {
       
       if (!session || new Date(session.lastActivity) < thirtyMinutesAgo) {
         const estimatedDuration = session ? 
-          Math.round((new Date(session.lastActivity) - new Date(session.sessionStart)) / (1000 * 60)) :
-          15;
+          Math.round((new Date(session.lastActivity) - new Date(session.sessionStart)) / 1000) :
+          900; // Default 15 minutes in seconds
         
         const estOptions = { 
           timeZone: 'America/New_York', 
@@ -254,7 +254,7 @@ setInterval(async () => {
         delete usageData[index].id;
         delete usageData[index].sessionId;
         
-        console.log(`Cleaned up abandoned session for ${record.userName}, estimated duration: ${estimatedDuration} minutes`);
+        console.log(`Cleaned up abandoned session for ${record.userName}, estimated duration: ${estimatedDuration} seconds`);
         
         if (session) {
           delete currentSessions[record.sessionId];
@@ -272,15 +272,18 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
 });
 
-// Session tracking endpoints
+// Session tracking endpoints - SIMPLIFIED
 app.post('/api/start-session', (req, res) => {
   try {
-    const { userName, sessionId, timestamp } = req.body;
+    const { userName, sessionId, timestamp, userInput, selectedKPI, customKPI } = req.body;
     
+    // Store session data but don't create usage record yet
     currentSessions[sessionId] = {
       userName: userName || 'Anonymous',
       sessionStart: timestamp,
-      ideasGenerated: 0,
+      userInput: userInput,
+      selectedKPI: selectedKPI,
+      customKPI: customKPI,
       lastActivity: timestamp
     };
     
@@ -291,20 +294,17 @@ app.post('/api/start-session', (req, res) => {
   }
 });
 
-// Track idea generation
-app.post('/api/track-idea', async (req, res) => {
+// Track form submission - THIS IS THE KEY METRIC
+app.post('/api/track-form-submission', async (req, res) => {
   try {
-    const { sessionId, promptUsed } = req.body;
+    const { sessionId, userInput, selectedKPI, customKPI } = req.body;
     
     if (currentSessions[sessionId]) {
-      currentSessions[sessionId].ideasGenerated++;
-      currentSessions[sessionId].lastPrompt = promptUsed;
-      currentSessions[sessionId].lastActivity = new Date().toISOString();
-      
       const session = currentSessions[sessionId];
-      const recordTime = new Date();
+      const submissionTime = new Date();
       const sessionStartTime = new Date(session.sessionStart);
       
+      // Format times in EST
       const estOptions = { 
         timeZone: 'America/New_York', 
         hour12: true, 
@@ -319,43 +319,51 @@ app.post('/api/track-idea', async (req, res) => {
         day: '2-digit' 
       };
       
-      const recordId = `${sessionId}_${Date.now()}`;
-      
-      const newRecord = {
-        id: recordId,
+      // Create the usage record - ONLY ONE per form submission
+      const usageRecord = {
         sessionId: sessionId,
-        date: recordTime.toLocaleDateString('en-US', estDateOptions),
+        date: submissionTime.toLocaleDateString('en-US', estDateOptions),
         userName: session.userName,
-        sessionStart: sessionStartTime.toLocaleTimeString('en-US', estOptions),
+        selectedKPI: selectedKPI || 'None',
+        customKPI: customKPI || '',
+        promptText: userInput.substring(0, 200), // First 200 characters
+        formSubmissionTime: submissionTime.toLocaleTimeString('en-US', estOptions),
         sessionEnd: 'In Progress',
         sessionDuration: 'In Progress',
-        lastPrompt: session.lastPrompt ? session.lastPrompt.substring(0, 100) : 'Unknown',
         isActive: true
       };
       
+      // Check if we already recorded this form submission
       const existingIndex = usageData.findIndex(record => record.sessionId === sessionId);
       
       if (existingIndex >= 0) {
-        usageData[existingIndex] = newRecord;
+        // Update existing record
+        usageData[existingIndex] = usageRecord;
       } else {
-        usageData.push(newRecord);
+        // Add new record
+        usageData.push(usageRecord);
       }
       
+      // Update session
+      currentSessions[sessionId].lastActivity = submissionTime.toISOString();
+      currentSessions[sessionId].formSubmitted = true;
+      
+      // Save to GitHub
       saveUsageData().catch(error => {
         console.error('Background save to GitHub failed:', error);
       });
       
-      console.log(`Data saved for user: ${session.userName}, Total records: ${usageData.length}`);
+      console.log(`📊 Form submission tracked for ${session.userName}: "${userInput.substring(0, 50)}..."`);
     }
     
     res.json({ success: true });
   } catch (error) {
-    console.error('Error tracking idea:', error);
-    res.status(500).json({ error: 'Failed to track idea generation' });
+    console.error('Error tracking form submission:', error);
+    res.status(500).json({ error: 'Failed to track form submission' });
   }
 });
 
-// End session
+// End session with accurate duration
 app.post('/api/end-session', async (req, res) => {
   try {
     console.log('🔍 DEBUG: End session request received');
@@ -374,55 +382,41 @@ app.post('/api/end-session', async (req, res) => {
     const { sessionId } = req.body;
     const session = currentSessions[sessionId];
     
-    if (session) {
+    if (session && session.formSubmitted) {
       const sessionEndTime = new Date();
-      const sessionStartTime = new Date(session.sessionStart);
-      const actualSessionDuration = Math.round((sessionEndTime - sessionStartTime) / (1000 * 60));
       
-      const estOptions = { 
-        timeZone: 'America/New_York', 
-        hour12: true, 
-        hour: 'numeric', 
-        minute: '2-digit', 
-        second: '2-digit' 
-      };
-      
+      // Find the usage record for this session
       const recordIndex = usageData.findIndex(record => record.sessionId === sessionId);
       
       if (recordIndex >= 0) {
+        const formSubmissionTime = new Date(usageData[recordIndex].formSubmissionTime);
+        const actualSessionDuration = Math.round((sessionEndTime - formSubmissionTime) / 1000); // seconds
+        
+        const estOptions = { 
+          timeZone: 'America/New_York', 
+          hour12: true, 
+          hour: 'numeric', 
+          minute: '2-digit', 
+          second: '2-digit' 
+        };
+        
+        // Update the record with final data
         usageData[recordIndex].sessionEnd = sessionEndTime.toLocaleTimeString('en-US', estOptions);
         usageData[recordIndex].sessionDuration = actualSessionDuration;
         usageData[recordIndex].isActive = false;
         
-        delete usageData[recordIndex].id;
+        // Clean up temporary fields
         delete usageData[recordIndex].sessionId;
         delete usageData[recordIndex].isActive;
         
-        console.log(`✅ Updated session duration for ${session.userName}: ${actualSessionDuration} minutes`);
-      } else {
-        const estDateOptions = { 
-          timeZone: 'America/New_York',
-          year: 'numeric', 
-          month: '2-digit', 
-          day: '2-digit' 
-        };
+        console.log(`✅ Session completed for ${session.userName}: ${actualSessionDuration} seconds`);
         
-        usageData.push({
-          date: sessionEndTime.toLocaleDateString('en-US', estDateOptions),
-          userName: session.userName,
-          sessionStart: sessionStartTime.toLocaleTimeString('en-US', estOptions),
-          sessionEnd: sessionEndTime.toLocaleTimeString('en-US', estOptions),
-          sessionDuration: actualSessionDuration,
-          lastPrompt: session.lastPrompt ? session.lastPrompt.substring(0, 100) : 'Unknown'
-        });
-        
-        console.log(`Created fallback record for ${session.userName}: ${actualSessionDuration} minutes`);
+        // Save updated data
+        await saveUsageData();
       }
       
-      await saveUsageData();
+      // Clean up session
       delete currentSessions[sessionId];
-    } else {
-      console.log('⚠️ WARNING: Session not found for sessionId:', sessionId);
     }
     
     res.json({ success: true });
@@ -432,11 +426,12 @@ app.post('/api/end-session', async (req, res) => {
   }
 });
 
-// CSV download endpoint
+// CSV download endpoint - UPDATED HEADERS
 app.get('/api/download-usage-data', async (req, res) => {
   try {
     console.log(`CSV Download requested. Total records: ${usageData.length}`);
     
+    // Clean up any remaining "In Progress" sessions
     const now = new Date();
     const estOptions = { 
       timeZone: 'America/New_York', 
@@ -456,8 +451,8 @@ app.get('/api/download-usage-data', async (req, res) => {
       if (record.sessionEnd === 'In Progress' || record.sessionDuration === 'In Progress') {
         const session = currentSessions[record.sessionId];
         const estimatedDuration = session ? 
-          Math.round((now - new Date(session.sessionStart)) / (1000 * 60)) :
-          10;
+          Math.round((now - new Date(session.lastActivity)) / 1000) :
+          600; // Default 10 minutes in seconds
         
         usageData[index].sessionEnd = now.toLocaleTimeString('en-US', estOptions);
         usageData[index].sessionDuration = estimatedDuration;
@@ -466,30 +461,41 @@ app.get('/api/download-usage-data', async (req, res) => {
           usageData[index].date = now.toLocaleDateString('en-US', estDateOptions);
         }
         
-        delete usageData[index].id;
         delete usageData[index].sessionId;
         delete usageData[index].isActive;
         
-        console.log(`Cleaned up incomplete record during CSV generation: ${estimatedDuration} minutes`);
+        console.log(`Cleaned up incomplete record during CSV generation: ${estimatedDuration} seconds`);
       }
     });
     
-    const cleanData = usageData.filter(row => 
-      row.date && row.userName && row.sessionStart && 
-      row.sessionEnd !== 'In Progress' && row.sessionDuration !== 'In Progress'
+    // Filter out malformed records and remove duplicates
+    const cleanData = usageData.filter((row, index, self) => 
+      row.date && row.userName && row.formSubmissionTime && 
+      row.sessionEnd !== 'In Progress' && row.sessionDuration !== 'In Progress' &&
+      // Remove duplicates based on userName, date, and promptText
+      index === self.findIndex(r => 
+        r.userName === row.userName && 
+        r.date === row.date && 
+        r.promptText === row.promptText &&
+        r.formSubmissionTime === row.formSubmissionTime
+      )
     );
     
     console.log(`Clean records for CSV: ${cleanData.length}`);
-    console.log('Sample data:', cleanData.slice(0, 2));
     
-    const csvHeader = 'Date,User Name,Session Start (EST),Session End (EST),Duration (minutes),Prompt\n';
+    // UPDATED CSV HEADERS
+    const csvHeader = 'Date,User Name,KPI Selected,Form Submission Time (EST),Session End (EST),Duration (seconds),Prompt Text\n';
     const csvRows = cleanData.map(row => {
-      const cleanPrompt = (row.lastPrompt || 'Unknown')
+      const cleanPrompt = (row.promptText || 'Unknown')
         .replace(/"/g, '""')
         .replace(/[\r\n]/g, ' ')
-        .substring(0, 100);
+        .substring(0, 150);
       
-      return `"${row.date}","${row.userName}","${row.sessionStart}","${row.sessionEnd}","${row.sessionDuration}","${cleanPrompt}"`;
+      const kpiDisplay = row.selectedKPI === 'other' ? 
+        (row.customKPI || 'Custom KPI') : 
+        (row.selectedKPI || 'None');
+      
+      return `"${row.date}","${row.userName}","${kpiDisplay}","${row.formSubmissionTime}","${row.sessionEnd}","${row.sessionDuration}","${cleanPrompt}"`;
     });
     
     const csvContent = csvHeader + csvRows.join('\n');
@@ -526,15 +532,34 @@ app.get('/api/debug-data', (req, res) => {
   }
 });
 
-// Usage statistics endpoint
+// Usage statistics endpoint - DAU/WAU READY
 app.get('/api/usage-stats', (req, res) => {
   try {
     const completedRecords = usageData.filter(r => !r.isActive && r.sessionDuration !== 'In Progress');
+    const today = new Date().toLocaleDateString('en-US', { 
+      timeZone: 'America/New_York',
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit' 
+    });
+    
+    // Calculate DAU/WAU
+    const todayUsers = [...new Set(completedRecords
+      .filter(r => r.date === today)
+      .map(r => r.userName))];
+    
+    // Last 7 days for WAU
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const weeklyUsers = [...new Set(completedRecords
+      .filter(r => new Date(r.date) >= sevenDaysAgo)
+      .map(r => r.userName))];
     
     const stats = {
-      totalSessions: completedRecords.length,
-      totalIdeas: completedRecords.length * 7,
-      uniqueUsers: [...new Set(completedRecords.map(session => session.userName))].length,
+      totalFormSubmissions: completedRecords.length,
+      uniqueUsers: [...new Set(completedRecords.map(r => r.userName))].length,
+      dailyActiveUsers: todayUsers.length,
+      weeklyActiveUsers: weeklyUsers.length,
       activeSessions: Object.keys(currentSessions).length,
       averageSessionDuration: completedRecords.length > 0 ? 
         Math.round(completedRecords.reduce((sum, session) => sum + (session.sessionDuration || 0), 0) / completedRecords.length) : 0
@@ -897,7 +922,7 @@ const KPI_CONTEXT = {
   }
 };
 
-// Main idea generation endpoint
+// Main idea generation endpoint - UPDATED TO TRACK FORM SUBMISSION
 app.post('/api/generate-ideas', upload.array('files'), async (req, res) => {
   try {
     const { userInput, selectedKPI, customKPI } = req.body;
