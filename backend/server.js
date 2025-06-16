@@ -286,7 +286,69 @@ app.post('/api/start-session', (req, res) => {
       customKPI: customKPI,
       lastActivity: timestamp
     };
+    // ADD THIS ENTIRE BLOCK HERE:
+app.post('/api/track-form-submission', async (req, res) => {
+  try {
+    const { sessionId, userInput, selectedKPI, customKPI } = req.body;
     
+    if (currentSessions[sessionId]) {
+      const session = currentSessions[sessionId];
+      const submissionTime = new Date();
+      
+      const estOptions = { 
+        timeZone: 'America/New_York', 
+        hour12: true, 
+        hour: 'numeric', 
+        minute: '2-digit', 
+        second: '2-digit' 
+      };
+      const estDateOptions = { 
+        timeZone: 'America/New_York',
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit' 
+      };
+      
+      const usageRecord = {
+        sessionId: sessionId,
+        date: submissionTime.toLocaleDateString('en-US', estDateOptions),
+        userName: session.userName,
+        selectedKPI: selectedKPI || 'None',
+        customKPI: customKPI || '',
+        promptText: userInput.substring(0, 200),
+        formSubmissionTime: submissionTime.toLocaleTimeString('en-US', estOptions),
+        sessionEnd: 'In Progress',
+        sessionDuration: 'In Progress',
+        isActive: true
+      };
+      
+      const existingIndex = usageData.findIndex(record => record.sessionId === sessionId);
+      
+      if (existingIndex >= 0) {
+        usageData[existingIndex] = usageRecord;
+      } else {
+        usageData.push(usageRecord);
+      }
+      
+      currentSessions[sessionId].lastActivity = submissionTime.toISOString();
+      currentSessions[sessionId].formSubmitted = true;
+      
+      console.log(`📊 Form submission tracked for ${session.userName}: "${userInput.substring(0, 50)}..."`);
+      
+      saveUsageData().catch(error => {
+        console.error('Background save to GitHub failed:', error);
+      });
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error tracking form submission:', error);
+    res.status(500).json({ error: 'Failed to track form submission' });
+  }
+});
+
+// Then continue with the next endpoint (probably /api/end-session)
+
     res.json({ success: true, sessionId });
   } catch (error) {
     console.error('Error starting session:', error);
