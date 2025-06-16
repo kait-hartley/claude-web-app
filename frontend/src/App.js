@@ -810,7 +810,7 @@ if (currentScreen === 'input') {
                 marginBottom: '0.5rem',
                 fontFamily: 'Lexend, sans-serif'
               }}>
-                Your Name (for usage tracking)
+                Full Name
               </label>
               <input
                 type="text"
