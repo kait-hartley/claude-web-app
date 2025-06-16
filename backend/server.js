@@ -17,21 +17,290 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
+// FIXED: Implementation Steps API endpoint - Always returns exactly 4 steps
+app.post('/api/implementation-steps', async (req, res) => {
+  try {
+    const { idea, expectedResult, originalUserInput } = req.body;
+    
+    const prompt = `You are a HubSpot conversational marketing implementation expert. Generate EXACTLY 4 high-level, HubSpot-tool-specific implementation steps for this experiment idea.
+
+EXPERIMENT IDEA: "${idea}"
+EXPECTED RESULT: "${expectedResult}"
+ORIGINAL CONTEXT: "${originalUserInput}"
+
+HUBSPOT CHATFLOW IMPLEMENTATION CAPABILITIES:
+- ChatFlow Builder (Service > Chatflows)
+- Rule-based chatbots, Live chat, Knowledge base integration
+- Targeting: URL rules, visitor behavior, contact properties
+- Integrations: Lead scoring, workflows, meeting scheduler, ticket creation
+- Display triggers: Exit intent, time on page, scroll percentage
+- Conversation routing and team assignment
+
+IMPLEMENTATION STEP GUIDELINES:
+
+1. HubSpot-Tool-Specific: Reference actual HubSpot features and navigation paths
+2. High-Level but Actionable: Strategic steps that can be executed
+3. Sequential Order: Steps should build logically from setup to launch
+4. EXACTLY 4 Steps: Generate precisely 4 steps - no more, no less
+5. Include Testing: Always include a testing/validation step
+
+STEP FORMAT:
+- Start with action verb (Configure, Set up, Create, Test, Launch)
+- Reference specific HubSpot tools/features
+- Keep each step to 1-2 sentences maximum
+- Include key settings or considerations
+
+CRITICAL: You MUST generate exactly 4 steps. Count them to ensure you have exactly 4.
+
+JSON format:
+{
+  "implementationSteps": [
+    {
+      "stepNumber": 1,
+      "title": "[Action Verb] [HubSpot Feature]",
+      "description": "[Brief description of what to do in this HubSpot tool/feature]"
+    },
+    {
+      "stepNumber": 2,
+      "title": "[Action Verb] [HubSpot Feature]",
+      "description": "[Brief description of what to do in this HubSpot tool/feature]"
+    },
+    {
+      "stepNumber": 3,
+      "title": "[Action Verb] [HubSpot Feature]",
+      "description": "[Brief description of what to do in this HubSpot tool/feature]"
+    },
+    {
+      "stepNumber": 4,
+      "title": "[Action Verb] [HubSpot Feature]",
+      "description": "[Brief description of what to do in this HubSpot tool/feature]"
+    }
+  ]
+}
+
+Generate exactly 4 practical HubSpot implementation steps that convert this experiment idea into actionable tasks.`;
+
+    const response = await anthropic.messages.create({
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 2000,
+      temperature: 0.6,
+      messages: [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ]
+    });
+
+    const content = response.content[0].text;
+    let implementationData;
+    
+    try {
+      const cleanedContent = cleanJsonString(content);
+      const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        implementationData = JSON.parse(jsonMatch[0]);
+        
+        // Ensure exactly 4 steps
+        if (!implementationData.implementationSteps || implementationData.implementationSteps.length !== 4) {
+          throw new Error('Did not generate exactly 4 steps');
+        }
+      } else {
+        throw new Error('No JSON found in implementation response');
+      }
+    } catch (parseError) {
+      console.error('JSON parsing error in implementation steps:', parseError);
+      implementationData = { 
+        implementationSteps: [
+          {
+            stepNumber: 1,
+            title: "Configure ChatFlow",
+            description: "Set up basic chatflow in HubSpot Service > Chatflows with appropriate triggers"
+          },
+          {
+            stepNumber: 2,
+            title: "Set Targeting Rules",
+            description: "Configure visitor targeting based on page URL, behavior, or contact properties"
+          },
+          {
+            stepNumber: 3,
+            title: "Test Functionality",
+            description: "Test the chatflow with team members to ensure proper functionality and user experience"
+          },
+          {
+            stepNumber: 4,
+            title: "Launch and Monitor",
+            description: "Deploy to live environment and monitor performance metrics for optimization"
+          }
+        ]
+      };
+    }
+
+    res.json(implementationData);
+  } catch (error) {
+    console.error('Error generating implementation steps:', error);
+    res.status(500).json({ error: 'Failed to generate implementation steps' });
+  }
+});
+
+// FIXED: Enhanced refinement with control character handling
+app.post('/api/refine-idea-custom', async (req, res) => {
+  try {
+    const { idea, expectedResult, customRefinement, originalUserInput } = req.body;
+    
+    const prompt = `You are the lead HubSpot conversational marketing strategist refining an experiment idea based on the team's 94-experiment library knowledge and current HubSpot ChatFlow capabilities.
+
+ORIGINAL CONTEXT: "${cleanJsonString(originalUserInput)}"
+CURRENT IDEA: "${cleanJsonString(idea)}"
+CURRENT EXPECTED RESULT: "${cleanJsonString(expectedResult)}"
+REFINEMENT REQUEST: "${cleanJsonString(customRefinement)}"
+
+HUBSPOT CHATFLOW CONSTRAINTS:
+${EXPERIMENT_LIBRARY_CONTEXT.limitations_constraints.join('\n- ')}
+
+AVAILABLE HUBSPOT CAPABILITIES:
+- ChatFlow Types: ${EXPERIMENT_LIBRARY_CONTEXT.current_hubspot_capabilities.chatflow_types.join(', ')}
+- Integrations: ${EXPERIMENT_LIBRARY_CONTEXT.current_hubspot_capabilities.integrations_available.join(', ')}
+- Targeting Options: ${EXPERIMENT_LIBRARY_CONTEXT.current_hubspot_capabilities.targeting_options.join(', ')}
+
+NEVER SUGGEST these already-tested patterns:
+${EXPERIMENT_LIBRARY_CONTEXT.extensively_tested_avoid.join('\n- ')}
+
+REFINEMENT PRINCIPLES:
+1. Maintain HubSpot implementability using available ChatFlow features
+2. Use exact terminology from both original input and refinement request
+3. Preserve concise clarity (~40 words, 35-45 range)
+4. Avoid the 94 already-tested experiment variations
+5. Address both original needs AND refinement request cohesively
+
+SOURCES CITATION REQUIREMENTS:
+Use EXACT experiment names and ANY legitimate external sources:
+✅ CORRECT INTERNAL: "Bot378 Salesbot: Onsite | EN | Partners", "BAMIC InApp AB Test - EN Pricing Page (All Users) - BOT363"
+✅ CORRECT EXTERNAL: "HubSpot Conversational Marketing Report 2024", "Drift Industry Benchmark Study", "Forrester Conversational AI Research", "Harvard Business Review Customer Engagement Analysis"
+❌ WRONG: "Salesbot experiment", "BAMIC pattern", "HubSpot feature", "industry data", "research study"
+
+The refined idea should be achievable through HubSpot's current ChatFlow capabilities while incorporating their specific refinement request.
+
+JSON format:
+{
+  "idea": "[Refined ~40 words using their exact terminology, implementable via HubSpot ChatFlow]",
+  "expectedResult": "[Updated percentage] improvement in [their specific metric] based on [relevant experiment pattern], measured through [HubSpot tracking]",
+  "sources": ["[EXACT experiment name from library]", "[Specific source or current performance metric]"]
+}`;
+
+    const response = await anthropic.messages.create({
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 2000,
+      temperature: 0.7,
+      messages: [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ]
+    });
+
+    const content = response.content[0].text;
+    let refinedIdea;
+    
+    try {
+      const cleanedContent = cleanJsonString(content);
+      const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        refinedIdea = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('No JSON found in refinement response');
+      }
+    } catch (parseError) {
+      console.error('JSON parsing error in refinement:', parseError);
+      refinedIdea = { 
+        idea: idea, 
+        expectedResult: expectedResult,
+        sources: ["System error"]
+      };
+    }
+
+    res.json(refinedIdea);
+  } catch (error) {
+    console.error('Error refining idea:', error);
+    res.status(500).json({ error: 'Failed to refine experiment idea' });
+  }
+});
+
+// Keep original refinement endpoint for backward compatibility
+app.post('/api/refine-idea', async (req, res) => {
+  try {
+    const { idea, expectedResult, refinementType } = req.body;
+    
+    let prompt = `You are a HubSpot conversational marketing strategist with knowledge of 94 team experiments and current ChatFlow capabilities. `;
+    
+    switch(refinementType) {
+      case 'clearer':
+        prompt += `Make this experiment concept clearer and more specific while targeting ~40 words and ensuring HubSpot ChatFlow implementability: "${idea}" with expected result: "${expectedResult}".`;
+        break;
+      case 'concise':
+        prompt += `Make this experiment more concise while preserving strategic elements and HubSpot implementability: "${idea}" with expected result: "${expectedResult}". Target ~40 words.`;
+        break;
+      case 'detailed':
+        prompt += `Add strategic detail and HubSpot-specific implementation guidance to this experiment: "${idea}" with expected result: "${expectedResult}". Target ~40 words.`;
+        break;
+      case 'better':
+        prompt += `Enhance this experiment strategy for higher impact and HubSpot ChatFlow specificity: "${idea}" with expected result: "${expectedResult}". Target ~40 words.`;
+        break;
+    }
+    
+    prompt += '\n\nEnsure the refined idea is implementable through HubSpot ChatFlow capabilities and avoids the 94 already-tested experiment patterns.\n\nSOURCES CITATION: Use EXACT experiment names (like "Bot378 Salesbot: Onsite | EN | Partners") or ANY legitimate external source (like "HubSpot State of Marketing Report 2024", "Drift Conversational Marketing Benchmark", "Forrester AI Research"), never generic references.\n\nReturn JSON format: {"idea": "refined idea", "expectedResult": "refined result", "sources": ["[EXACT experiment name OR specific external source]", "[Another specific source]"]}';
+
+    const response = await anthropic.messages.create({
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 1500,
+      temperature: 0.6,
+      messages: [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ]
+    });
+
+    const content = response.content[0].text;
+    let refinedIdea;
+    
+    try {
+      const cleanedContent = cleanJsonString(content);
+      const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        refinedIdea = JSON.parse(jsonMatch[0]);
+      } else {
+        refinedIdea = { idea: idea, expectedResult: expectedResult, sources: ["System error"] };
+      }
+    } catch (parseError) {
+      console.error('JSON parsing error:', parseError);
+      refinedIdea = { idea: idea, expectedResult: expectedResult, sources: ["System error"] };
+    }
+
+    res.json(refinedIdea);
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Failed to refine experiment idea' });
+  }
+});
+
 // Setup file upload handling
 const upload = multer({ dest: 'uploads/' });
 
-// KPI Tracking - File-based storage to persist data
+// GitHub Storage Configuration
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const GITHUB_OWNER = process.env.GITHUB_OWNER; // Your GitHub username
+const GITHUB_REPO = process.env.GITHUB_REPO; // Repository name
+const GITHUB_FILE_PATH = 'usage-data.json'; // File path in the repo
+
+// Local storage configuration
 const dataFile = path.join(__dirname, 'usage-data.json');
 
 // Load existing data on server start
 let usageData = [];
 let currentSessions = {}; // Track active sessions
-
-// GitHub Storage Configuration
-const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-const GITHUB_OWNER = process.env.GITHUB_OWNER; // Your GitHub username
-const GITHUB_REPO = process.env.GITHUB_REPO; // Repository name (e.g., 'hubspot-usage-data')
-const GITHUB_FILE_PATH = 'usage-data.json'; // File path in the repo
 
 // GitHub API helper
 const githubAPI = async (method, endpoint, data = null) => {
@@ -153,21 +422,6 @@ const loadFromLocalFile = () => {
   } catch (error) {
     console.error('Local file load failed:', error);
     usageData = [];
-  }
-}; local file
-    try {
-      if (fs.existsSync(dataFile)) {
-        const data = fs.readFileSync(dataFile, 'utf8');
-        usageData = JSON.parse(data);
-        console.log(`Fallback: loaded ${usageData.length} records from local file`);
-      } else {
-        console.log('No local file found, starting fresh');
-        usageData = [];
-      }
-    } catch (localError) {
-      console.error('Both JSONBin and local load failed:', localError);
-      usageData = [];
-    }
   }
 };
 
@@ -954,122 +1208,6 @@ ${fileAnalysis.alreadyTested.join('\n')}`;
 
     enhancedPrompt += `
 
-STEP 1 - COMPREHENSIVE INPUT ANALYSIS:
-Extract EVERY element from their input:
-- Primary goals/objectives mentioned
-- Specific metrics or KPIs referenced  
-- Target audiences or segments specified
-- Page types or contexts mentioned
-- Constraints or requirements stated
-- Current challenges or pain points
-- Technology or tools referenced
-- Timeline or urgency indicators
-
-STEP 2 - DIRECT RESPONSE MAPPING:
-Each idea MUST directly address specific parts of their input using their EXACT terminology and language.
-
-IDEA GENERATION APPROACH:
-
-1. HYPER-TARGETED TO INPUT: Every idea must directly address the specific problem, audience, and context mentioned in the user's input
-
-2. NATURAL VARIETY: Ideas should be different approaches to the SAME core problem - not artificial variety across unrelated areas
-
-3. INPUT-DRIVEN SOLUTIONS: Generate ideas that feel like they were created by someone who deeply understands their exact situation and challenges
-
-4. CONTEXTUAL RELEVANCE: Use their specific terminology, constraints, stakeholders, and success metrics mentioned
-
-5. PROBLEM-CENTRIC: All 7 ideas should attack their stated problem from different angles, not different problems entirely
-
-DISTINCTIVENESS WITHIN CONTEXT:
-- Different implementation approaches to the SAME challenge
-- Different HubSpot tools that could solve THEIR specific problem  
-- Different complexity levels for THEIR stated needs
-- Different measurement approaches for THEIR success metrics
-- Different audience segments within THEIR context
-
-AVOID FORCED PATTERNS:
-Do not artificially force ideas into predetermined categories (Salesbot, BAMIC, etc.) unless they directly address the user's specific input. Every idea should feel custom-built for their exact challenge.
-
-UNIVERSAL REQUIREMENTS FOR ALL 7 IDEAS:
-
-1. NEVER-TESTED BUT IMPLEMENTABLE: Build on proven patterns but explore untested angles that are achievable with current team bandwidth and technical capabilities
-
-2. LOW-TO-MEDIUM COMPLEXITY FOCUS: Prioritize ideas that can be implemented without extensive development, training, or multi-team coordination
-
-3. HUBSPOT-NATIVE SOLUTIONS: Each idea must be achievable using current HubSpot ChatFlow capabilities and standard integrations
-
-4. HYPER-RELEVANT TARGETING: Feel custom-written for their exact situation using their specific terminology
-
-5. QUICK-TO-MODERATE IMPLEMENTATION: Target ideas that can show results within 2-8 weeks, not months
-
-6. CONVERSATIONAL MARKETING TEAM FRIENDLY: Consider ideas that align with team expertise in chat optimization, bot management, and conversation experience design
-
-EXPECTED RESULTS CALIBRATION:
-Base estimates on current team performance context:
-- QL Volume Recovery: Target ideas that could help reverse -4% MoM, -26% YoY decline
-- Chat Engagement: Ideas to reverse -2% MoM bot chat volume decline
-- Tagging Accuracy: Improvements toward 90% goal (from current 78.3%)
-- Digital Channel Optimization: Build on 180% MRR attainment success
-- Deflection Rate: Maintain/improve current 76% performance
-- Self-Service Progression: Ideas supporting journey to 30%+ self-service MRR
-
-PRIORITY ALIGNMENT:
-Every idea must directly address at least one current performance challenge:
-1. QL volume decline reversal
-2. Chat engagement improvements  
-3. Qualification process enhancement
-4. Digital channel optimization
-5. Self-service journey progression
-
-SOURCES CITATION REQUIREMENTS:
-For the "sources" field, you MUST cite specific, traceable sources:
-
-1. EXACT EXPERIMENT NAMES from the library (never generic references):
-   ✅ CORRECT: "Bot378 Salesbot: Onsite | EN | Partners"
-   ✅ CORRECT: "BAMIC InApp AB Test - EN Pricing Page (All Users) - BOT363"  
-   ✅ CORRECT: "Bot406 CRM Catchall AM - Adding Demo RFF"
-   ❌ WRONG: "Salesbot experiment", "BAMIC pattern", "Demo RFF success"
-
-2. EXTERNAL SOURCES - Cite ANY legitimate external source you know about:
-   ✅ CORRECT: "HubSpot State of Marketing Report 2024", "HubSpot Conversational Marketing Benchmark 2024", "HubSpot Customer Service Trends Report"
-   ✅ CORRECT: "Drift Conversational Marketing Report 2024", "Intercom Customer Engagement Study 2024", "LiveChat Industry Benchmark"
-   ✅ CORRECT: "Salesforce State of Connected Customer Report", "Zendesk CX Trends Report", "Gartner Customer Service Technology Study"
-   ✅ CORRECT: "Forrester Conversational AI Research", "McKinsey Customer Journey Analysis", "Deloitte Digital Experience Study"
-   ✅ CORRECT: "Harvard Business Review Customer Engagement Research", "MIT Technology Review AI Adoption Study"
-   ✅ CORRECT: "Google Analytics Industry Benchmarks", "Facebook Business Performance Data", "LinkedIn Marketing Solutions Report"
-   
-   Use ANY specific, named external source - not limited to these examples. Include:
-   - HubSpot's own reports, studies, and research
-   - Industry benchmark reports (Drift, Intercom, Salesforce, Zendesk, etc.)
-   - Research firms (Gartner, Forrester, McKinsey, Deloitte, PwC, etc.)
-   - Academic studies (Harvard, MIT, Stanford, etc.)
-   - Platform performance data (Google, Facebook, LinkedIn, etc.)
-   - Any other legitimate, named external source
-   
-   ❌ WRONG: "Industry benchmark", "Public data", "Research study", "External report"
-
-3. CURRENT TEAM PERFORMANCE DATA when referencing provided metrics:
-   ✅ CORRECT: "Current deflection rate performance (76%, +3pts MoM)"
-   ✅ CORRECT: "Digital channel success pattern (180% MRR attainment)"
-   ❌ WRONG: "Team performance", "Current metrics"
-
-FULL EXPERIMENT LIBRARY AVAILABLE FOR CITATION (90 unique experiments):
-You have access to cite ANY of these exact experiment names as sources. Here are examples by category:
-
-Demo RFF (5 total): "Bot406 CRM Catchall AM - Adding Demo RFF", "Bot362 Demo Paid LP - Replacing QR Demo with RFF", "Bot 376 Homepage - Adding QR Book a Demo with RFF", "BOT356 - Demo RFF - Replace actual Demo QL in Chat - FR CRM Signup", "BOT331: RFF & Demo QL within Chat"
-
-Salesbot (17 total): "Bot378 Salesbot: Onsite | EN | Partners", "Bot397 Salesbot - Onsite | EN | Competitive pages", "Bot383 Salesbot - Marketing Catchall AM", "Bot 381 Adding Salesbot to Case Studies chatbot", "BOT 336 | Onsite | EN | Contact Sales | GAI | Salesbot", "Bot361 adding Gen Ai to Affiliate Marketing CRM Catchall", "Adding Salesbot to Website Themes", "Self-Service Bot vs SalesBot on InApp | EN | Academy | Generative AI"
-
-BAMIC (15 total): "BAMIC InApp AB Test - EN Pricing Page (All Users) - BOT363", "Salesbot on InApp Pricing (1-10 EE) AB Test - BOT365", "Bot 407 | Onsite | EN | Contact Sales | GAI | Salesbot | BAMIC", "BOT388 - BAMIC New Module - EN InApp Pricing Pages", "BOT 325 - FR InApp pricing Pages - BAMIC", "BOT 310 BAM Experiment FR Pricing Page"
-
-Self Service Bot (19 total): "Bot 313: Generative AI on Marketing Hub Product Homepage", "Bot 316: Generative AI Catchall on EN Product Pages", "Bot 320: Generative AI on CRM Paid LP (2.0)", "BOT373 - Generative AI on InApp DACH Help-in the Nav", "Generative AI BOT345 Onsite DACH HomePage", "Generative AI BOT355 Onsite Offer Demo Pages"
-
-Quick Replies (6 total): "Experiment w/ QR on EN Knowledge Base Generative AI", "QR Optimization on InApp | EN | Academy | Generative AI", "QRs on FR Knowledge Base - Generative AI", "Quick Win Sprint Experiment"
-
-Plus experiments in: Revamp, Net New, Sales Bot, Contact Us Bot, Mobile Targeting, Demo QL, Welcome Message, Chat Display Behavior, and more.
-
-IMPORTANT: These are just examples - you can cite ANY of the 90 unique experiment names from the complete library.
-
 JSON format:
 {
   "ideas": [
@@ -1086,7 +1224,7 @@ Generate 7 ideas that feel custom-created for their exact challenge, with each i
     const response = await anthropic.messages.create({
       model: 'claude-3-5-sonnet-20241022',
       max_tokens: 6000,
-      temperature: 0.85, // Balanced creativity with consistency
+      temperature: 0.85,
       messages: [
         {
           role: 'user',
@@ -1124,280 +1262,16 @@ Generate 7 ideas that feel custom-created for their exact challenge, with each i
   }
 });
 
-// FIXED: Implementation Steps API endpoint - Always returns exactly 4 steps
-app.post('/api/implementation-steps', async (req, res) => {
-  try {
-    const { idea, expectedResult, originalUserInput } = req.body;
-    
-    const prompt = `You are a HubSpot conversational marketing implementation expert. Generate EXACTLY 4 high-level, HubSpot-tool-specific implementation steps for this experiment idea.
-
-EXPERIMENT IDEA: "${idea}"
-EXPECTED RESULT: "${expectedResult}"
-ORIGINAL CONTEXT: "${originalUserInput}"
-
-HUBSPOT CHATFLOW IMPLEMENTATION CAPABILITIES:
-- ChatFlow Builder (Service > Chatflows)
-- Rule-based chatbots, Live chat, Knowledge base integration
-- Targeting: URL rules, visitor behavior, contact properties
-- Integrations: Lead scoring, workflows, meeting scheduler, ticket creation
-- Display triggers: Exit intent, time on page, scroll percentage
-- Conversation routing and team assignment
-
-IMPLEMENTATION STEP GUIDELINES:
-
-1. HubSpot-Tool-Specific: Reference actual HubSpot features and navigation paths
-2. High-Level but Actionable: Strategic steps that can be executed
-3. Sequential Order: Steps should build logically from setup to launch
-4. EXACTLY 4 Steps: Generate precisely 4 steps - no more, no less
-5. Include Testing: Always include a testing/validation step
-
-STEP FORMAT:
-- Start with action verb (Configure, Set up, Create, Test, Launch)
-- Reference specific HubSpot tools/features
-- Keep each step to 1-2 sentences maximum
-- Include key settings or considerations
-
-CRITICAL: You MUST generate exactly 4 steps. Count them to ensure you have exactly 4.
-
-JSON format:
-{
-  "implementationSteps": [
-    {
-      "stepNumber": 1,
-      "title": "[Action Verb] [HubSpot Feature]",
-      "description": "[Brief description of what to do in this HubSpot tool/feature]"
-    },
-    {
-      "stepNumber": 2,
-      "title": "[Action Verb] [HubSpot Feature]",
-      "description": "[Brief description of what to do in this HubSpot tool/feature]"
-    },
-    {
-      "stepNumber": 3,
-      "title": "[Action Verb] [HubSpot Feature]",
-      "description": "[Brief description of what to do in this HubSpot tool/feature]"
-    },
-    {
-      "stepNumber": 4,
-      "title": "[Action Verb] [HubSpot Feature]",
-      "description": "[Brief description of what to do in this HubSpot tool/feature]"
-    }
-  ]
-}
-
-Generate exactly 4 practical HubSpot implementation steps that convert this experiment idea into actionable tasks.`;
-
-    const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 2000,
-      temperature: 0.6,
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ]
-    });
-
-    const content = response.content[0].text;
-    let implementationData;
-    
-    try {
-      const cleanedContent = cleanJsonString(content);
-      const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        implementationData = JSON.parse(jsonMatch[0]);
-        
-        // Ensure exactly 4 steps
-        if (!implementationData.implementationSteps || implementationData.implementationSteps.length !== 4) {
-          throw new Error('Did not generate exactly 4 steps');
-        }
-      } else {
-        throw new Error('No JSON found in implementation response');
-      }
-    } catch (parseError) {
-      console.error('JSON parsing error in implementation steps:', parseError);
-      implementationData = { 
-        implementationSteps: [
-          {
-            stepNumber: 1,
-            title: "Configure ChatFlow",
-            description: "Set up basic chatflow in HubSpot Service > Chatflows with appropriate triggers"
-          },
-          {
-            stepNumber: 2,
-            title: "Set Targeting Rules",
-            description: "Configure visitor targeting based on page URL, behavior, or contact properties"
-          },
-          {
-            stepNumber: 3,
-            title: "Test Functionality",
-            description: "Test the chatflow with team members to ensure proper functionality and user experience"
-          },
-          {
-            stepNumber: 4,
-            title: "Launch and Monitor",
-            description: "Deploy to live environment and monitor performance metrics for optimization"
-          }
-        ]
-      };
-    }
-
-    res.json(implementationData);
-  } catch (error) {
-    console.error('Error generating implementation steps:', error);
-    res.status(500).json({ error: 'Failed to generate implementation steps' });
-  }
-});
-
-// FIXED: Enhanced refinement with control character handling
-app.post('/api/refine-idea-custom', async (req, res) => {
-  try {
-    const { idea, expectedResult, customRefinement, originalUserInput } = req.body;
-    
-    const prompt = `You are the lead HubSpot conversational marketing strategist refining an experiment idea based on the team's 94-experiment library knowledge and current HubSpot ChatFlow capabilities.
-
-ORIGINAL CONTEXT: "${cleanJsonString(originalUserInput)}"
-CURRENT IDEA: "${cleanJsonString(idea)}"
-CURRENT EXPECTED RESULT: "${cleanJsonString(expectedResult)}"
-REFINEMENT REQUEST: "${cleanJsonString(customRefinement)}"
-
-HUBSPOT CHATFLOW CONSTRAINTS:
-${EXPERIMENT_LIBRARY_CONTEXT.limitations_constraints.join('\n- ')}
-
-AVAILABLE HUBSPOT CAPABILITIES:
-- ChatFlow Types: ${EXPERIMENT_LIBRARY_CONTEXT.current_hubspot_capabilities.chatflow_types.join(', ')}
-- Integrations: ${EXPERIMENT_LIBRARY_CONTEXT.current_hubspot_capabilities.integrations_available.join(', ')}
-- Targeting Options: ${EXPERIMENT_LIBRARY_CONTEXT.current_hubspot_capabilities.targeting_options.join(', ')}
-
-NEVER SUGGEST these already-tested patterns:
-${EXPERIMENT_LIBRARY_CONTEXT.extensively_tested_avoid.join('\n- ')}
-
-REFINEMENT PRINCIPLES:
-1. Maintain HubSpot implementability using available ChatFlow features
-2. Use exact terminology from both original input and refinement request
-3. Preserve concise clarity (~40 words, 35-45 range)
-4. Avoid the 94 already-tested experiment variations
-5. Address both original needs AND refinement request cohesively
-
-SOURCES CITATION REQUIREMENTS:
-Use EXACT experiment names and ANY legitimate external sources:
-✅ CORRECT INTERNAL: "Bot378 Salesbot: Onsite | EN | Partners", "BAMIC InApp AB Test - EN Pricing Page (All Users) - BOT363"
-✅ CORRECT EXTERNAL: "HubSpot Conversational Marketing Report 2024", "Drift Industry Benchmark Study", "Forrester Conversational AI Research", "Harvard Business Review Customer Engagement Analysis"
-❌ WRONG: "Salesbot experiment", "BAMIC pattern", "HubSpot feature", "industry data", "research study"
-
-The refined idea should be achievable through HubSpot's current ChatFlow capabilities while incorporating their specific refinement request.
-
-JSON format:
-{
-  "idea": "[Refined ~40 words using their exact terminology, implementable via HubSpot ChatFlow]",
-  "expectedResult": "[Updated percentage] improvement in [their specific metric] based on [relevant experiment pattern], measured through [HubSpot tracking]",
-  "sources": ["[EXACT experiment name from library]", "[Specific source or current performance metric]"]
-}`;
-
-    const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 2000,
-      temperature: 0.7,
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ]
-    });
-
-    const content = response.content[0].text;
-    let refinedIdea;
-    
-    try {
-      const cleanedContent = cleanJsonString(content);
-      const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        refinedIdea = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('No JSON found in refinement response');
-      }
-    } catch (parseError) {
-      console.error('JSON parsing error in refinement:', parseError);
-      refinedIdea = { 
-        idea: idea, 
-        expectedResult: expectedResult,
-        sources: ["System error"]
-      };
-    }
-
-    res.json(refinedIdea);
-  } catch (error) {
-    console.error('Error refining idea:', error);
-    res.status(500).json({ error: 'Failed to refine experiment idea' });
-  }
-});
-
-// Keep original refinement endpoint for backward compatibility
-app.post('/api/refine-idea', async (req, res) => {
-  try {
-    const { idea, expectedResult, refinementType } = req.body;
-    
-    let prompt = `You are a HubSpot conversational marketing strategist with knowledge of 94 team experiments and current ChatFlow capabilities. `;
-    
-    switch(refinementType) {
-      case 'clearer':
-        prompt += `Make this experiment concept clearer and more specific while targeting ~40 words and ensuring HubSpot ChatFlow implementability: "${idea}" with expected result: "${expectedResult}".`;
-        break;
-      case 'concise':
-        prompt += `Make this experiment more concise while preserving strategic elements and HubSpot implementability: "${idea}" with expected result: "${expectedResult}". Target ~40 words.`;
-        break;
-      case 'detailed':
-        prompt += `Add strategic detail and HubSpot-specific implementation guidance to this experiment: "${idea}" with expected result: "${expectedResult}". Target ~40 words.`;
-        break;
-      case 'better':
-        prompt += `Enhance this experiment strategy for higher impact and HubSpot ChatFlow specificity: "${idea}" with expected result: "${expectedResult}". Target ~40 words.`;
-        break;
-    }
-    
-    prompt += '\n\nEnsure the refined idea is implementable through HubSpot ChatFlow capabilities and avoids the 94 already-tested experiment patterns.\n\nSOURCES CITATION: Use EXACT experiment names (like "Bot378 Salesbot: Onsite | EN | Partners") or ANY legitimate external source (like "HubSpot State of Marketing Report 2024", "Drift Conversational Marketing Benchmark", "Forrester AI Research"), never generic references.\n\nReturn JSON format: {"idea": "refined idea", "expectedResult": "refined result", "sources": ["[EXACT experiment name OR specific external source]", "[Another specific source]"]}';
-
-    const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 1500,
-      temperature: 0.6,
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ]
-    });
-
-    const content = response.content[0].text;
-    let refinedIdea;
-    
-    try {
-      const cleanedContent = cleanJsonString(content);
-      const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        refinedIdea = JSON.parse(jsonMatch[0]);
-      } else {
-        refinedIdea = { idea: idea, expectedResult: expectedResult, sources: ["System error"] };
-      }
-    } catch (parseError) {
-      console.error('JSON parsing error:', parseError);
-      refinedIdea = { idea: idea, expectedResult: expectedResult, sources: ["System error"] };
-    }
-
-    res.json(refinedIdea);
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ error: 'Failed to refine experiment idea' });
-  }
-});
+// All other API endpoints remain the same...
 
 app.listen(port, () => {
   console.log(`HubSpot Conversational Marketing Experiment Generator running on http://localhost:${port}`);
   console.log(`Enhanced with 94-experiment library knowledge and current HubSpot ChatFlow capabilities`);
   console.log(`KPI Tracking: Active - Usage data will be stored and available for CSV download`);
-  console.log(`JSONBin API Key: ${JSONBIN_API_KEY ? 'Configured' : 'Missing - data will not persist across restarts'}`);
-  console.log(`JSONBin Bin ID: ${JSONBIN_BIN_ID ? 'Configured' : 'Missing - will be set after first save'}`);
+  console.log(`GitHub Storage:`);
+  console.log(`  - Token: ${GITHUB_TOKEN ? '✅ Configured' : '❌ Missing'}`);
+  console.log(`  - Owner: ${GITHUB_OWNER || '❌ Missing'}`);
+  console.log(`  - Repo: ${GITHUB_REPO || '❌ Missing'}`);
+  console.log(`  - Status: ${GITHUB_TOKEN && GITHUB_OWNER && GITHUB_REPO ? '✅ Ready' : '⚠️ Will use local fallback'}`);
   console.log(`Loaded ${usageData.length} existing usage records`);
 });
