@@ -20,6 +20,10 @@ const anthropic = new Anthropic({
 // Setup file upload handling
 const upload = multer({ dest: 'uploads/' });
 
+// KPI Tracking - Usage data storage
+let usageData = [];
+let currentSessions = {}; // Track active sessions
+
 app.use(cors());
 app.use(express.json());
 
@@ -27,6 +31,108 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, '../frontend/build')));
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
+});
+
+// Session tracking endpoints
+app.post('/api/start-session', (req, res) => {
+  try {
+    const { userName, sessionId, timestamp } = req.body;
+    
+    currentSessions[sessionId] = {
+      userName: userName || 'Anonymous',
+      sessionStart: timestamp,
+      ideasGenerated: 0,
+      lastActivity: timestamp
+    };
+    
+    res.json({ success: true, sessionId });
+  } catch (error) {
+    console.error('Error starting session:', error);
+    res.status(500).json({ error: 'Failed to start session tracking' });
+  }
+});
+
+// Track each idea generation
+app.post('/api/track-idea', (req, res) => {
+  try {
+    const { sessionId, promptUsed } = req.body;
+    
+    if (currentSessions[sessionId]) {
+      currentSessions[sessionId].ideasGenerated++;
+      currentSessions[sessionId].lastPrompt = promptUsed;
+      currentSessions[sessionId].lastActivity = new Date().toISOString();
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error tracking idea:', error);
+    res.status(500).json({ error: 'Failed to track idea generation' });
+  }
+});
+
+// End session and save data
+app.post('/api/end-session', (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    const session = currentSessions[sessionId];
+    
+    if (session && session.ideasGenerated > 0) {
+      const sessionDuration = Math.round((Date.now() - new Date(session.sessionStart)) / (1000 * 60)); // minutes
+      
+      usageData.push({
+        date: new Date().toDateString(),
+        userName: session.userName,
+        sessionStart: new Date(session.sessionStart).toLocaleTimeString(),
+        sessionEnd: new Date().toLocaleTimeString(),
+        sessionDuration,
+        ideasGenerated: session.ideasGenerated,
+        lastPrompt: session.lastPrompt ? session.lastPrompt.substring(0, 100) : 'Unknown'
+      });
+      
+      delete currentSessions[sessionId];
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error ending session:', error);
+    res.status(500).json({ error: 'Failed to end session' });
+  }
+});
+
+// CSV download endpoint - provides ALL usage data from all users
+app.get('/api/download-usage-data', (req, res) => {
+  try {
+    const csvHeader = 'Date,User Name,Session Start,Session End,Duration (minutes),Sample Prompt\n';
+    const csvRows = usageData.map(row => 
+      `${row.date},"${row.userName}",${row.sessionStart},${row.sessionEnd},${row.sessionDuration},"${row.lastPrompt}"`
+    );
+    
+    const csvContent = csvHeader + csvRows.join('\n');
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=hubspot-idea-generator-usage-data.csv');
+    res.send(csvContent);
+  } catch (error) {
+    console.error('Error generating CSV:', error);
+    res.status(500).json({ error: 'Failed to generate usage data' });
+  }
+});
+
+// Get usage statistics (optional - for dashboard)
+app.get('/api/usage-stats', (req, res) => {
+  try {
+    const stats = {
+      totalSessions: usageData.length,
+      totalIdeas: usageData.reduce((sum, session) => sum + session.ideasGenerated, 0),
+      uniqueUsers: [...new Set(usageData.map(session => session.userName))].length,
+      activeSessions: Object.keys(currentSessions).length
+    };
+    
+    res.json(stats);
+  } catch (error) {
+    console.error('Error getting stats:', error);
+    res.status(500).json({ error: 'Failed to get usage statistics' });
+  }
 });
 
 // UPDATED: Real-time Team Context from 2025 Marketing-ISC Performance Readout
@@ -849,4 +955,5 @@ app.post('/api/refine-idea', async (req, res) => {
 app.listen(port, () => {
   console.log(`HubSpot Conversational Marketing Experiment Generator running on http://localhost:${port}`);
   console.log(`Enhanced with 94-experiment library knowledge and current HubSpot ChatFlow capabilities`);
+  console.log(`KPI Tracking: Active - Usage data will be stored and available for CSV download`);
 });

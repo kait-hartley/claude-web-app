@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Zap, MessageCircle, Settings, ArrowLeft, Send, Copy, CheckCircle, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import './App.css';
 
@@ -28,6 +28,11 @@ const [loadingSteps, setLoadingSteps] = useState({});
 const [sortOption, setSortOption] = useState('');
 const [expandedSteps, setExpandedSteps] = useState({});
 
+// KPI Tracking state
+const [userName, setUserName] = useState('');
+const [sessionId, setSessionId] = useState(null);
+const [sessionStarted, setSessionStarted] = useState(false);
+
 // Simple auth check
 const handleAuth = (e) => {
   e.preventDefault();
@@ -37,6 +42,84 @@ const handleAuth = (e) => {
     alert('Incorrect password');
   }
 };
+
+// Session tracking functions
+const startSession = async () => {
+  if (sessionStarted || !userName.trim()) return;
+  
+  const newSessionId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+  
+  try {
+    await fetch('https://claude-web-app.onrender.com/api/start-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userName: userName.trim(),
+        sessionId: newSessionId,
+        timestamp: new Date().toISOString()
+      })
+    });
+    
+    setSessionId(newSessionId);
+    setSessionStarted(true);
+  } catch (error) {
+    console.error('Error starting session:', error);
+  }
+};
+
+const endSession = async () => {
+  if (!sessionId) return;
+  
+  try {
+    await fetch('https://claude-web-app.onrender.com/api/end-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId })
+    });
+  } catch (error) {
+    console.error('Error ending session:', error);
+  }
+};
+
+const trackIdeaGeneration = async (promptUsed) => {
+  if (!sessionId) return;
+  
+  try {
+    await fetch('https://claude-web-app.onrender.com/api/track-idea', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId,
+        promptUsed: promptUsed.substring(0, 100)
+      })
+    });
+  } catch (error) {
+    console.error('Error tracking idea:', error);
+  }
+};
+
+// Download usage data function
+const downloadUsageData = () => {
+  window.open('https://claude-web-app.onrender.com/api/download-usage-data', '_blank');
+};
+
+// Session cleanup effect
+useEffect(() => {
+  const handleBeforeUnload = () => {
+    if (sessionId) {
+      navigator.sendBeacon('https://claude-web-app.onrender.com/api/end-session', 
+        JSON.stringify({ sessionId }));
+    }
+  };
+  
+  window.addEventListener('beforeunload', handleBeforeUnload);
+  return () => {
+    window.removeEventListener('beforeunload', handleBeforeUnload);
+    if (sessionId) {
+      endSession();
+    }
+  };
+}, [sessionId]);
 
 // Show auth screen if not authenticated
 if (!isAuthenticated) {
@@ -419,6 +502,11 @@ const fetchImplementationSteps = async (ideaId) => {
 const handleGenerateIdeas = async (isRetry = false) => {
   if (!userInput.trim()) return;
   
+  // Add session tracking before starting generation
+  if (!sessionStarted && userName.trim()) {
+    await startSession();
+  }
+  
   setIsGenerating(true);
   setError(null);
   
@@ -455,6 +543,11 @@ const handleGenerateIdeas = async (isRetry = false) => {
     setIdeas(formattedIdeas);
     setCurrentScreen('output');
     setRetryCount(0);
+    
+    // Add tracking after successful generation
+    if (sessionId) {
+      await trackIdeaGeneration(userInput);
+    }
     
     // Clear states when generating new ideas
     setRefinementInputs({});
@@ -607,6 +700,11 @@ const copyIdeaToClipboard = async (ideaId) => {
 };
 
 const resetToInput = () => {
+  // End current session if active
+  if (sessionId) {
+    endSession();
+  }
+  
   setCurrentScreen('input');
   setUserInput('');
   setIdeas([]);
@@ -622,9 +720,15 @@ const resetToInput = () => {
   setLoadingSteps({});
   setExpandedSteps({});
   setSortOption('');
+  
+  // Reset tracking state
+  setSessionId(null);
+  setSessionStarted(false);
+  setUserName('');
 };
 
 const editPrompt = () => {
+  // Don't end session when editing, just switch screens
   setCurrentScreen('input');
 };
 
@@ -697,6 +801,54 @@ if (currentScreen === 'input') {
           </div>
           
           <div style={{ marginBottom: '2rem' }}>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{
+                display: 'block',
+                fontSize: '1rem',
+                fontWeight: '600',
+                color: '#2d3748',
+                marginBottom: '0.5rem',
+                fontFamily: 'Lexend, sans-serif'
+              }}>
+                Your Name (for usage tracking)
+              </label>
+              <input
+                type="text"
+                placeholder="Enter your name"
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '1rem',
+                  border: '2px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  color: '#2d3748',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                  fontFamily: 'Lexend, sans-serif',
+                  backgroundColor: 'white',
+                  transition: 'all 0.3s ease'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#ff7a59';
+                  e.target.style.boxShadow = '0 0 0 2px rgba(255, 122, 89, 0.08)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#e2e8f0';
+                  e.target.style.boxShadow = 'none';
+                }}
+              />
+              <div style={{
+                fontSize: '0.75rem',
+                color: '#64748b',
+                marginTop: '0.5rem',
+                fontFamily: 'Lexend, sans-serif'
+              }}>
+                This helps us track usage patterns and improve the tool
+              </div>
+            </div>
+
             <div style={{ marginBottom: '1.5rem' }}>
               <label style={{
                 display: 'block',
@@ -1599,6 +1751,59 @@ return (
               </div>
             );
           })}
+        </div>
+
+        {/* Download Usage Data Button - At the very bottom in gray */}
+        <div className="fade-in-up" style={{
+          borderTop: '1px solid #f1f5f9',
+          paddingTop: '2rem',
+          marginTop: '2rem',
+          textAlign: 'center'
+        }}>
+          <button
+            onClick={downloadUsageData}
+            style={{
+              backgroundColor: '#6b7280',
+              color: 'white',
+              padding: '0.75rem 1.25rem',
+              borderRadius: '6px',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              fontFamily: 'Lexend, sans-serif',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              transition: 'all 0.2s ease',
+              opacity: 0.8
+            }}
+            onMouseOver={(e) => {
+              e.target.style.backgroundColor = '#4b5563';
+              e.target.style.opacity = '1';
+              e.target.style.transform = 'translateY(-1px)';
+            }}
+            onMouseOut={(e) => {
+              e.target.style.backgroundColor = '#6b7280';
+              e.target.style.opacity = '0.8';
+              e.target.style.transform = 'translateY(0px)';
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7,10 12,15 17,10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download All Usage Data (CSV)
+          </button>
+          <div style={{
+            fontSize: '0.75rem',
+            color: '#9ca3af',
+            marginTop: '0.5rem',
+            fontFamily: 'Lexend, sans-serif'
+          }}>
+            Exports usage data from all team members for analysis
+          </div>
         </div>
       </div>
     </div>
