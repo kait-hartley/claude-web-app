@@ -73,13 +73,14 @@ const createSession = async () => {
 
 // FIXED: Form submission tracking function
 const trackFormSubmission = async () => {
+  console.log('🔍 FRONTEND: trackFormSubmission called');
+  console.log('🔍 FRONTEND: sessionId:', sessionId);
+  console.log('🔍 FRONTEND: userInput length:', userInput?.length);
+  
   if (!sessionId) {
     console.log('❌ FRONTEND: Cannot track form submission - no sessionId');
     return;
   }
-  
-  console.log('🔍 FRONTEND: Tracking form submission for sessionId:', sessionId);
-  console.log('🔍 FRONTEND: User input:', userInput?.substring(0, 50));
   
   try {
     const response = await fetch('https://claude-web-app.onrender.com/api/track-form-submission', {
@@ -581,18 +582,30 @@ const handleGenerateIdeas = async (isRetry = false) => {
     setRetryCount(0);
     
     // FIXED: Track form submission AFTER successful idea generation
-    if (sessionId) {
-      await trackFormSubmission();
-    }
-    
-    // Clear states when generating new ideas
-    setRefinementInputs({});
-    setIsRefining({});
-    setCopiedIdeas({});
-    setImplementationSteps({});
-    setLoadingSteps({});
-    setExpandedSteps({});
-    setSortOption('');
+console.log('🔍 FRONTEND: About to check sessionId for tracking');
+console.log('🔍 FRONTEND: sessionId value:', sessionId);
+console.log('🔍 FRONTEND: sessionId type:', typeof sessionId);
+
+if (sessionId) {
+  console.log('🔍 FRONTEND: Calling trackFormSubmission now...');
+  try {
+    await trackFormSubmission();
+    console.log('🔍 FRONTEND: trackFormSubmission completed');
+  } catch (error) {
+    console.error('❌ FRONTEND: trackFormSubmission failed:', error);
+  }
+} else {
+  console.log('❌ FRONTEND: No sessionId - cannot track form submission');
+}
+
+// Clear states when generating new ideas
+setRefinementInputs({});
+setIsRefining({});
+setCopiedIdeas({});
+setImplementationSteps({});
+setLoadingSteps({});
+setExpandedSteps({});
+setSortOption('');
     
   } catch (error) {
     console.error('Error generating ideas:', error);
