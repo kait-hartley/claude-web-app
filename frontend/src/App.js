@@ -76,14 +76,6 @@ const createSession = async () => {
     console.error('❌ FRONTEND: Error creating session:', error);
   }
 };
-    
-    setSessionId(newSessionId);
-    setSessionStarted(true);
-    console.log('✅ FRONTEND: Session created:', newSessionId);
-  } catch (error) {
-    console.error('❌ FRONTEND: Error creating session:', error);
-  }
-};
 
 // FIXED: Form submission tracking function
 const trackFormSubmission = async () => {
