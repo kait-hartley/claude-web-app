@@ -93,5 +93,17 @@
     "formSubmissionTime": "10:10:03 AM",
     "sessionEnd": "10:10:21 AM",
     "sessionDuration": 19
+  },
+  {
+    "sessionId": "17501695072150ia9a1tjm",
+    "date": "06/17/2025",
+    "userName": "Kaitlyn Hartley",
+    "selectedKPI": "deflection_rate",
+    "customKPI": "",
+    "promptText": "(TEST) Increasing deflection on TOFU, low intent popular pages\n",
+    "formSubmissionTime": "10:12:18 AM",
+    "sessionEnd": "In Progress",
+    "sessionDuration": "In Progress",
+    "isActive": true
   }
 ]
