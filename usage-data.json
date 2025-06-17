@@ -116,27 +116,23 @@
     "isActive": false
   },
   {
-    "sessionId": "17501767594725o6pae847",
     "date": "06/17/2025",
     "userName": "Kaitlyn Hartley",
     "selectedKPI": "csat",
     "customKPI": "",
     "promptText": "Increasing CSAT scores and reducing detractor comments after chats",
     "formSubmissionTime": "12:12:56 PM",
-    "sessionEnd": "In Progress",
-    "sessionDuration": "In Progress",
-    "isActive": true
+    "sessionEnd": "3:03:28 PM",
+    "sessionDuration": 600
   },
   {
-    "sessionId": "175018693583201u7q743e",
     "date": "06/17/2025",
     "userName": "Kaitlyn Hartley",
     "selectedKPI": "csat",
     "customKPI": "",
     "promptText": "Improving CSAT scores by reducing common detractor comments after chats",
     "formSubmissionTime": "3:02:30 PM",
-    "sessionEnd": "In Progress",
-    "sessionDuration": "In Progress",
-    "isActive": true
+    "sessionEnd": "3:03:28 PM",
+    "sessionDuration": 58
   }
 ]
