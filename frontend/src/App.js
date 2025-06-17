@@ -43,14 +43,15 @@ const handleAuth = (e) => {
   }
 };
 
-// UPDATED: Create session when user enters name but don't track yet
+// FIXED: Create session and properly set state
 const createSession = async () => {
   if (sessionStarted || !userName.trim()) return;
   
   const newSessionId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+  console.log('🔍 FRONTEND: Creating session with ID:', newSessionId);
   
   try {
-    await fetch('https://claude-web-app.onrender.com/api/start-session', {
+    const response = await fetch('https://claude-web-app.onrender.com/api/start-session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -62,6 +63,19 @@ const createSession = async () => {
         customKPI: customKPI
       })
     });
+    
+    if (response.ok) {
+      console.log('✅ FRONTEND: Session created successfully, setting state');
+      setSessionId(newSessionId);  // ← CRITICAL: This sets the state
+      setSessionStarted(true);
+      console.log('✅ FRONTEND: Session state updated, sessionId:', newSessionId);
+    } else {
+      console.error('❌ FRONTEND: Session creation failed:', response.status);
+    }
+  } catch (error) {
+    console.error('❌ FRONTEND: Error creating session:', error);
+  }
+};
     
     setSessionId(newSessionId);
     setSessionStarted(true);
