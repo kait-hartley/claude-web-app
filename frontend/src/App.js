@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Zap, MessageCircle, Settings, ArrowLeft, Send, Copy, CheckCircle, AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import { Zap, MessageCircle, Settings, ArrowLeft, Send, Copy, CheckCircle, AlertCircle, ChevronDown, ChevronRight, Users } from 'lucide-react';
 import './App.css';
 
 function App() {
@@ -32,6 +32,59 @@ const [expandedSteps, setExpandedSteps] = useState({});
 const [userName, setUserName] = useState('');
 const [sessionId, setSessionId] = useState(null);
 const [sessionStarted, setSessionStarted] = useState(false);
+
+// Team collaboration data
+const TEAM_INFO = {
+  MARTEK: {
+    name: 'MARTEK',
+    description: 'Marketing Technology team - technical execution and infrastructure support',
+    keywords: ['technical', 'automation', 'integration', 'infrastructure', 'setup', 'configuration', 'workflow', 'api', 'chatflow', 'backend', 'system', 'platform']
+  },
+  ISC: {
+    name: 'ISC',
+    description: 'Inbound Success Coaches - customer-facing chat experiences',
+    keywords: ['handoff', 'isc', 'coach', 'customer', 'chat experience', 'conversation', 'routing', 'escalation', 'human', 'agent', 'support', 'qualification']
+  },
+  'MSO Data Science': {
+    name: 'MSO Data Science',
+    description: 'Marketing Data Science - scoring models and data-based tools',
+    keywords: ['scoring', 'propensity', 'model', 'data', 'analytics', 'prediction', 'algorithm', 'machine learning', 'score', 'tagging', 'accuracy', 'intelligence']
+  },
+  AIMS: {
+    name: 'AIMS',
+    description: 'AI Marketing Solutions - AI capabilities and Salesbot',
+    keywords: ['ai', 'salesbot', 'artificial intelligence', 'genai', 'automated', 'bot', 'gai', 'intelligent', 'smart', 'evaluation', 'natural language']
+  },
+  'Creative Team': {
+    name: 'Creative Team',
+    description: 'Digital Experience - BAMIC/Demo modules and user experience',
+    keywords: ['bamic', 'demo', 'user experience', 'ux', 'design', 'interface', 'visual', 'module', 'booking', 'meeting', 'form', 'rff', 'creative']
+  }
+};
+
+// Function to identify relevant teams for an experiment idea
+const identifyRelevantTeams = (idea, expectedResult) => {
+  const fullText = `${idea} ${expectedResult}`.toLowerCase();
+  const relevantTeams = [];
+  
+  Object.entries(TEAM_INFO).forEach(([teamKey, teamData]) => {
+    const keywordMatches = teamData.keywords.filter(keyword => 
+      fullText.includes(keyword.toLowerCase())
+    ).length;
+    
+    if (keywordMatches > 0) {
+      relevantTeams.push({
+        ...teamData,
+        relevanceScore: keywordMatches
+      });
+    }
+  });
+  
+  // Sort by relevance score and return top 2-3 teams
+  return relevantTeams
+    .sort((a, b) => b.relevanceScore - a.relevanceScore)
+    .slice(0, 3);
+};
 
 // Simple auth check
 const handleAuth = (e) => {
@@ -351,6 +404,29 @@ const styles = `
       font-size: 0.75rem;
       font-weight: 600;
       flex-shrink: 0;
+    }
+
+    .team-collaboration {
+      background: #f8fffe;
+      border: 1px solid #d1fae5;
+      border-radius: 6px;
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+    }
+
+    .team-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      background: #ecfdf5;
+      color: #065f46;
+      border-radius: 4px;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      margin-right: 0.5rem;
+      margin-bottom: 0.25rem;
+      border: 1px solid #a7f3d0;
     }
   `;
 
@@ -1441,6 +1517,7 @@ return (
           {sortedIdeas.map((idea, index) => {
             const impactScore = extractImpactScore(idea.expectedResult);
             const complexityScore = estimateComplexity(idea.idea);
+            const relevantTeams = identifyRelevantTeams(idea.idea, idea.expectedResult);
             
             return (
               <div key={idea.id} className="fade-in-up card-hover" style={{
@@ -1609,6 +1686,40 @@ return (
                     )}
                   </div>
                 </div>
+
+                {/* Team Collaboration Section */}
+                {relevantTeams.length > 0 && (
+                  <div className="team-collaboration">
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      marginBottom: '0.5rem'
+                    }}>
+                      <Users size={14} color="#059669" />
+                      <span style={{
+                        color: '#059669',
+                        fontWeight: '600',
+                        fontSize: '0.75rem',
+                        fontFamily: 'Lexend, sans-serif',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
+                      }}>
+                        Key Collaborators
+                      </span>
+                    </div>
+                    <div>
+                      {relevantTeams.map((team, teamIndex) => (
+                        <div key={teamIndex} className="team-badge">
+                          <span style={{ fontWeight: '600' }}>{team.name}</span>
+                          <span style={{ fontSize: '0.6rem', opacity: 0.8 }}>
+                            {team.description.split(' - ')[1] || team.description}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Implementation Steps Section */}
                 <div style={{
