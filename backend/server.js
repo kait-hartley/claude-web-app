@@ -27,7 +27,7 @@ async function callAnthropicWithRetry(anthropic, requestConfig, maxRetries = 3, 
     try {
       console.log(`Anthropic API call attempt ${attempt}/${maxRetries}`);
       const response = await anthropic.messages.create(requestConfig);
-      console.log(`✅ Anthropic API call successful on attempt ${attempt}`);
+      console.log(`Anthropic API call successful on attempt ${attempt}`);
       return response;
       
     } catch (error) {
@@ -40,14 +40,14 @@ async function callAnthropicWithRetry(anthropic, requestConfig, maxRetries = 3, 
       if ((isOverloadError || isRateLimitError) && attempt < maxRetries) {
         const delay = baseDelay * Math.pow(2, attempt - 1);
         
-        console.log(`⚠️ Anthropic API ${isOverloadError ? 'overloaded' : 'rate limited'} (attempt ${attempt}/${maxRetries})`);
-        console.log(`🔄 Retrying in ${delay/1000} seconds...`);
+        console.log(`Anthropic API ${isOverloadError ? 'overloaded' : 'rate limited'} (attempt ${attempt}/${maxRetries})`);
+        console.log(`Retrying in ${delay/1000} seconds...`);
         
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
         
       } else {
-        console.error(`❌ Anthropic API error after ${attempt} attempts:`, {
+        console.error(`Anthropic API error after ${attempt} attempts:`, {
           status: error.status,
           type: error.error?.type,
           message: error.message
@@ -122,9 +122,9 @@ const saveUsageData = async (retryCount = 0) => {
     const { response: saveResponse } = await githubAPI('PUT', `contents/${GITHUB_FILE_PATH}`, commitData);
     
     if (saveResponse.ok) {
-      console.log(`✅ Usage data saved to GitHub successfully! Total records: ${usageData.length}`);
+      console.log(`Usage data saved to GitHub successfully! Total records: ${usageData.length}`);
     } else if (saveResponse.status === 409 && retryCount < 3) {
-      console.log(`⚠️ GitHub save conflict (409), retrying... (attempt ${retryCount + 1}/3)`);
+      console.log(`GitHub save conflict (409), retrying... (attempt ${retryCount + 1}/3)`);
       await new Promise(resolve => setTimeout(resolve, 1000 + (retryCount * 500)));
       return await saveUsageData(retryCount + 1);
     } else {
@@ -133,7 +133,7 @@ const saveUsageData = async (retryCount = 0) => {
     
   } catch (error) {
     if (error.message.includes('409') && retryCount < 3) {
-      console.log(`⚠️ GitHub save conflict, retrying... (attempt ${retryCount + 1}/3)`);
+      console.log(`GitHub save conflict, retrying... (attempt ${retryCount + 1}/3)`);
       await new Promise(resolve => setTimeout(resolve, 1000 + (retryCount * 500)));
       return await saveUsageData(retryCount + 1);
     }
@@ -160,7 +160,7 @@ const loadUsageData = async () => {
     if (response.ok && data && data.content) {
       const jsonContent = Buffer.from(data.content, 'base64').toString('utf8');
       usageData = JSON.parse(jsonContent);
-      console.log(`✅ Loaded ${usageData.length} usage records from GitHub`);
+      console.log(`Loaded ${usageData.length} usage records from GitHub`);
     } else if (response.status === 404) {
       console.log('No existing usage data found in GitHub, starting fresh');
       usageData = [];
@@ -267,12 +267,12 @@ setInterval(async () => {
 }, 30 * 60 * 1000);
 
 // Serve React build files
-app.use(express.static(path.join(__dirname, '../frontend/build')));
+app.use(express.static(path.join(__dirname, 'build')));
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
+  res.sendFile(path.join(__dirname, 'build/index.html'));
 });
 
-// FIXED: Session tracking endpoints - CLEAN IMPLEMENTATION
+// Session tracking endpoints
 app.post('/api/start-session', (req, res) => {
   try {
     const { userName, sessionId, timestamp, userInput, selectedKPI, customKPI } = req.body;
@@ -287,7 +287,7 @@ app.post('/api/start-session', (req, res) => {
       lastActivity: timestamp
     };
     
-    console.log(`📝 Session started for ${userName}: ${sessionId}`);
+    console.log(`Session started for ${userName}: ${sessionId}`);
     res.json({ success: true, sessionId });
   } catch (error) {
     console.error('Error starting session:', error);
@@ -295,13 +295,13 @@ app.post('/api/start-session', (req, res) => {
   }
 });
 
-// FIXED: Track form submission - SINGLE CORRECT IMPLEMENTATION
+// Track form submission
 app.post('/api/track-form-submission', async (req, res) => {
   try {
     const { sessionId, userInput, selectedKPI, customKPI } = req.body;
     
-    console.log(`🔍 BACKEND: Form submission received for sessionId: ${sessionId}`);
-    console.log(`🔍 BACKEND: User input preview: "${userInput?.substring(0, 50)}"...`);
+    console.log(`Form submission received for sessionId: ${sessionId}`);
+    console.log(`User input preview: "${userInput?.substring(0, 50)}..."`);
     
     if (currentSessions[sessionId]) {
       const session = currentSessions[sessionId];
@@ -338,28 +338,28 @@ app.post('/api/track-form-submission', async (req, res) => {
       
       if (existingIndex >= 0) {
         usageData[existingIndex] = usageRecord;
-        console.log(`🔄 BACKEND: Updated existing record for ${session.userName}`);
+        console.log(`Updated existing record for ${session.userName}`);
       } else {
         usageData.push(usageRecord);
-        console.log(`✅ BACKEND: Created new record for ${session.userName}`);
+        console.log(`Created new record for ${session.userName}`);
       }
       
       currentSessions[sessionId].lastActivity = submissionTime.toISOString();
       currentSessions[sessionId].formSubmitted = true;
       
-      console.log(`📊 Form submission tracked for ${session.userName}: "${userInput.substring(0, 50)}..."`);
+      console.log(`Form submission tracked for ${session.userName}: "${userInput.substring(0, 50)}..."`);
       
       // Save to GitHub in background
       saveUsageData().catch(error => {
         console.error('Background save to GitHub failed:', error);
       });
     } else {
-      console.log(`❌ BACKEND: No session found for sessionId: ${sessionId}`);
+      console.log(`No session found for sessionId: ${sessionId}`);
     }
     
     res.json({ success: true });
   } catch (error) {
-    console.error('❌ BACKEND: Error tracking form submission:', error);
+    console.error('Error tracking form submission:', error);
     res.status(500).json({ error: 'Failed to track form submission' });
   }
 });
@@ -367,16 +367,16 @@ app.post('/api/track-form-submission', async (req, res) => {
 // End session with accurate duration
 app.post('/api/end-session', async (req, res) => {
   try {
-    console.log('🔍 DEBUG: End session request received');
-    console.log('🔍 DEBUG: req.body:', req.body);
+    console.log('End session request received');
+    console.log('Request body:', req.body);
     
     if (!req.body || typeof req.body !== 'object') {
-      console.log('❌ ERROR: req.body is missing or invalid:', req.body);
+      console.log('req.body is missing or invalid:', req.body);
       return res.status(400).json({ error: 'Invalid request body' });
     }
     
     if (!req.body.sessionId) {
-      console.log('❌ ERROR: sessionId is missing from req.body:', req.body);
+      console.log('sessionId is missing from req.body:', req.body);
       return res.status(400).json({ error: 'Missing sessionId' });
     }
     
@@ -409,7 +409,7 @@ app.post('/api/end-session', async (req, res) => {
         // Clean up temporary fields
         delete usageData[recordIndex].sessionId;
         
-        console.log(`✅ Session completed for ${session.userName}: ${actualSessionDuration} seconds`);
+        console.log(`Session completed for ${session.userName}: ${actualSessionDuration} seconds`);
         
         // Save updated data
         await saveUsageData();
@@ -421,12 +421,12 @@ app.post('/api/end-session', async (req, res) => {
     
     res.json({ success: true });
   } catch (error) {
-    console.error('❌ Error ending session:', error);
+    console.error('Error ending session:', error);
     res.status(500).json({ error: 'Failed to end session' });
   }
 });
 
-// CSV download endpoint - UPDATED HEADERS
+// CSV download endpoint
 app.get('/api/download-usage-data', async (req, res) => {
   try {
     console.log(`CSV Download requested. Total records: ${usageData.length}`);
@@ -483,7 +483,6 @@ app.get('/api/download-usage-data', async (req, res) => {
     
     console.log(`Clean records for CSV: ${cleanData.length}`);
     
-    // UPDATED CSV HEADERS
     const csvHeader = 'Date,User Name,KPI Selected,Form Submission Time (EST),Session End (EST),Duration (seconds),Prompt Text\n';
     const csvRows = cleanData.map(row => {
       const cleanPrompt = (row.promptText || 'Unknown')
@@ -532,7 +531,7 @@ app.get('/api/debug-data', (req, res) => {
   }
 });
 
-// Usage statistics endpoint - DAU/WAU READY
+// Usage statistics endpoint
 app.get('/api/usage-stats', (req, res) => {
   try {
     const completedRecords = usageData.filter(r => !r.isActive && r.sessionDuration !== 'In Progress');
@@ -922,7 +921,7 @@ const KPI_CONTEXT = {
   }
 };
 
-// FIXED: Main idea generation endpoint with proper form tracking
+// Main idea generation endpoint
 app.post('/api/generate-ideas', upload.array('files'), async (req, res) => {
   try {
     const { userInput, selectedKPI, customKPI } = req.body;
@@ -1398,10 +1397,10 @@ app.listen(port, () => {
   console.log(`Enhanced with 94-experiment library knowledge and current HubSpot ChatFlow capabilities`);
   console.log(`KPI Tracking: Active - Usage data will be stored and available for CSV download`);
   console.log(`GitHub Storage:`);
-  console.log(`  - Token: ${GITHUB_TOKEN ? '✅ Configured' : '❌ Missing'}`);
-  console.log(`  - Owner: ${GITHUB_OWNER || '❌ Missing'}`);
-  console.log(`  - Repo: ${GITHUB_REPO || '❌ Missing'}`);
-  console.log(`  - Status: ${GITHUB_TOKEN && GITHUB_OWNER && GITHUB_REPO ? '✅ Ready' : '⚠️ Will use local fallback'}`);
+  console.log(`  - Token: ${GITHUB_TOKEN ? 'Configured' : 'Missing'}`);
+  console.log(`  - Owner: ${GITHUB_OWNER || 'Missing'}`);
+  console.log(`  - Repo: ${GITHUB_REPO || 'Missing'}`);
+  console.log(`  - Status: ${GITHUB_TOKEN && GITHUB_OWNER && GITHUB_REPO ? 'Ready' : 'Will use local fallback'}`);
   console.log(`Loaded ${usageData.length} existing usage records`);
-  console.log(`✅ Enhanced API retry logic added - ready to handle overload errors!`);
+  console.log(`Enhanced API retry logic added - ready to handle overload errors!`);
 });

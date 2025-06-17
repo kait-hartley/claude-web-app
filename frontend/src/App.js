@@ -28,7 +28,7 @@ const [loadingSteps, setLoadingSteps] = useState({});
 const [sortOption, setSortOption] = useState('');
 const [expandedSteps, setExpandedSteps] = useState({});
 
-// KPI Tracking state - UPDATED FOR FORM-BASED TRACKING
+// KPI Tracking state
 const [userName, setUserName] = useState('');
 const [sessionId, setSessionId] = useState(null);
 const [sessionStarted, setSessionStarted] = useState(false);
@@ -43,12 +43,15 @@ const handleAuth = (e) => {
   }
 };
 
-// FIXED: Create session and properly set state
+// Create session function
 const createSession = async () => {
-  if (sessionStarted || !userName.trim()) return;
+  if (!userName.trim()) {
+    console.log('No userName provided, cannot create session');
+    return null;
+  }
   
   const newSessionId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
-  console.log('🔍 FRONTEND: Creating session with ID:', newSessionId);
+  console.log('Creating session with ID:', newSessionId);
   
   try {
     const response = await fetch('https://claude-web-app.onrender.com/api/start-session', {
@@ -65,26 +68,24 @@ const createSession = async () => {
     });
     
     if (response.ok) {
-      console.log('✅ FRONTEND: Session created successfully, setting state');
-      setSessionId(newSessionId);  // ← CRITICAL: This sets the state
-      setSessionStarted(true);
-      console.log('✅ FRONTEND: Session state updated, sessionId:', newSessionId);
+      console.log('Session created successfully');
+      return newSessionId;
     } else {
-      console.error('❌ FRONTEND: Session creation failed:', response.status);
+      console.error('Session creation failed:', response.status);
+      return null;
     }
   } catch (error) {
-    console.error('❌ FRONTEND: Error creating session:', error);
+    console.error('Error creating session:', error);
+    return null;
   }
 };
 
-// FIXED: Form submission tracking function
-const trackFormSubmission = async () => {
-  console.log('🔍 FRONTEND: trackFormSubmission called');
-  console.log('🔍 FRONTEND: sessionId:', sessionId);
-  console.log('🔍 FRONTEND: userInput length:', userInput?.length);
+// Track form submission function
+const trackFormSubmission = async (activeSessionId) => {
+  console.log('Tracking form submission for sessionId:', activeSessionId);
   
-  if (!sessionId) {
-    console.log('❌ FRONTEND: Cannot track form submission - no sessionId');
+  if (!activeSessionId) {
+    console.log('Cannot track form submission - no sessionId provided');
     return;
   }
   
@@ -93,7 +94,7 @@ const trackFormSubmission = async () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        sessionId,
+        sessionId: activeSessionId,
         userInput: userInput,
         selectedKPI: selectedKPI,
         customKPI: customKPI
@@ -101,12 +102,12 @@ const trackFormSubmission = async () => {
     });
     
     if (response.ok) {
-      console.log('✅ FRONTEND: Form submission tracked successfully');
+      console.log('Form submission tracked successfully');
     } else {
-      console.log('❌ FRONTEND: Form submission tracking failed:', response.status);
+      console.log('Form submission tracking failed:', response.status);
     }
   } catch (error) {
-    console.error('❌ FRONTEND: Error tracking form submission:', error);
+    console.error('Error tracking form submission:', error);
   }
 };
 
@@ -115,7 +116,7 @@ const endSession = useCallback(async () => {
   if (!sessionId) return;
   
   try {
-    console.log('🔍 FRONTEND: Ending session:', sessionId);
+    console.log('Ending session:', sessionId);
     const response = await fetch('https://claude-web-app.onrender.com/api/end-session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -123,12 +124,12 @@ const endSession = useCallback(async () => {
     });
     
     if (response.ok) {
-      console.log('✅ FRONTEND: Session ended successfully');
+      console.log('Session ended successfully');
     } else {
-      console.log('❌ FRONTEND: Session end failed:', response.status);
+      console.log('Session end failed:', response.status);
     }
   } catch (error) {
-    console.error('❌ FRONTEND: Error ending session:', error);
+    console.error('Error ending session:', error);
   }
 }, [sessionId]);
 
@@ -141,13 +142,12 @@ const downloadUsageData = () => {
 useEffect(() => {
   const handleBeforeUnload = () => {
     if (sessionId) {
-      // Use fetch with keepalive instead of sendBeacon
       fetch('https://claude-web-app.onrender.com/api/end-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId }),
         keepalive: true
-      }).catch(() => {}); // Ignore errors on page unload
+      }).catch(() => {});
     }
   };
   
@@ -155,7 +155,6 @@ useEffect(() => {
   
   return () => {
     window.removeEventListener('beforeunload', handleBeforeUnload);
-    // Call endSession when component unmounts
     if (sessionId) {
       endSession();
     }
@@ -540,13 +539,27 @@ const fetchImplementationSteps = async (ideaId) => {
   }
 };
 
-// FIXED: Generate ideas function with proper form submission tracking
+// Main idea generation function
 const handleGenerateIdeas = async (isRetry = false) => {
   if (!userInput.trim()) return;
   
-  // Create session if not exists
-  if (!sessionStarted && userName.trim()) {
-    await createSession();
+  console.log('Starting idea generation process');
+  let currentSessionId = sessionId;
+  
+  // Create session if needed
+  if (!currentSessionId && userName.trim()) {
+    console.log('Creating new session');
+    currentSessionId = await createSession();
+    if (currentSessionId) {
+      setSessionId(currentSessionId);
+      setSessionStarted(true);
+      console.log('Session created and state updated:', currentSessionId);
+    }
+  }
+  
+  if (!currentSessionId) {
+    console.log('Cannot proceed without session');
+    return;
   }
   
   setIsGenerating(true);
@@ -562,7 +575,8 @@ const handleGenerateIdeas = async (isRetry = false) => {
       formData.append('files', file);
     });
     
-    // FIXED: Added the missing fetch call
+    console.log('Calling API with sessionId:', currentSessionId);
+    
     const response = await fetch('https://claude-web-app.onrender.com/api/generate-ideas', {
       method: 'POST',
       body: formData
@@ -587,31 +601,18 @@ const handleGenerateIdeas = async (isRetry = false) => {
     setCurrentScreen('output');
     setRetryCount(0);
     
-    // FIXED: Track form submission AFTER successful idea generation
-console.log('🔍 FRONTEND: About to check sessionId for tracking');
-console.log('🔍 FRONTEND: sessionId value:', sessionId);
-console.log('🔍 FRONTEND: sessionId type:', typeof sessionId);
-
-if (sessionId) {
-  console.log('🔍 FRONTEND: Calling trackFormSubmission now...');
-  try {
-    await trackFormSubmission();
-    console.log('🔍 FRONTEND: trackFormSubmission completed');
-  } catch (error) {
-    console.error('❌ FRONTEND: trackFormSubmission failed:', error);
-  }
-} else {
-  console.log('❌ FRONTEND: No sessionId - cannot track form submission');
-}
-
-// Clear states when generating new ideas
-setRefinementInputs({});
-setIsRefining({});
-setCopiedIdeas({});
-setImplementationSteps({});
-setLoadingSteps({});
-setExpandedSteps({});
-setSortOption('');
+    // Track form submission
+    console.log('Tracking form submission with sessionId:', currentSessionId);
+    await trackFormSubmission(currentSessionId);
+    
+    // Clear states when generating new ideas
+    setRefinementInputs({});
+    setIsRefining({});
+    setCopiedIdeas({});
+    setImplementationSteps({});
+    setLoadingSteps({});
+    setExpandedSteps({});
+    setSortOption('');
     
   } catch (error) {
     console.error('Error generating ideas:', error);
