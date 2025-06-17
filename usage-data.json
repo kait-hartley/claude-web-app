@@ -62,5 +62,17 @@
     "sessionEnd": "6:19:46 PM",
     "sessionDuration": 3,
     "lastPrompt": "Unknown"
+  },
+  {
+    "sessionId": "1750164005016arofogveg",
+    "date": "06/17/2025",
+    "userName": "Julia",
+    "selectedKPI": "engagement_rate",
+    "customKPI": "",
+    "promptText": "Test prompt",
+    "formSubmissionTime": "9:00:17 AM",
+    "sessionEnd": "In Progress",
+    "sessionDuration": "In Progress",
+    "isActive": true
   }
 ]
