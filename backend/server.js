@@ -272,7 +272,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/build/index.html'));
 });
 
-// Session tracking endpoints - SIMPLIFIED
+// FIXED: Session tracking endpoints - CLEAN IMPLEMENTATION
 app.post('/api/start-session', (req, res) => {
   try {
     const { userName, sessionId, timestamp, userInput, selectedKPI, customKPI } = req.body;
@@ -286,10 +286,22 @@ app.post('/api/start-session', (req, res) => {
       customKPI: customKPI,
       lastActivity: timestamp
     };
-    // ADD THIS ENTIRE BLOCK HERE:
+    
+    console.log(`📝 Session started for ${userName}: ${sessionId}`);
+    res.json({ success: true, sessionId });
+  } catch (error) {
+    console.error('Error starting session:', error);
+    res.status(500).json({ error: 'Failed to start session tracking' });
+  }
+});
+
+// FIXED: Track form submission - SINGLE CORRECT IMPLEMENTATION
 app.post('/api/track-form-submission', async (req, res) => {
   try {
     const { sessionId, userInput, selectedKPI, customKPI } = req.body;
+    
+    console.log(`🔍 BACKEND: Form submission received for sessionId: ${sessionId}`);
+    console.log(`🔍 BACKEND: User input preview: "${userInput?.substring(0, 50)}"...`);
     
     if (currentSessions[sessionId]) {
       const session = currentSessions[sessionId];
@@ -326,8 +338,10 @@ app.post('/api/track-form-submission', async (req, res) => {
       
       if (existingIndex >= 0) {
         usageData[existingIndex] = usageRecord;
+        console.log(`🔄 BACKEND: Updated existing record for ${session.userName}`);
       } else {
         usageData.push(usageRecord);
+        console.log(`✅ BACKEND: Created new record for ${session.userName}`);
       }
       
       currentSessions[sessionId].lastActivity = submissionTime.toISOString();
@@ -335,92 +349,17 @@ app.post('/api/track-form-submission', async (req, res) => {
       
       console.log(`📊 Form submission tracked for ${session.userName}: "${userInput.substring(0, 50)}..."`);
       
+      // Save to GitHub in background
       saveUsageData().catch(error => {
         console.error('Background save to GitHub failed:', error);
       });
+    } else {
+      console.log(`❌ BACKEND: No session found for sessionId: ${sessionId}`);
     }
     
     res.json({ success: true });
   } catch (error) {
-    console.error('Error tracking form submission:', error);
-    res.status(500).json({ error: 'Failed to track form submission' });
-  }
-});
-
-// Then continue with the next endpoint (probably /api/end-session)
-
-    res.json({ success: true, sessionId });
-  } catch (error) {
-    console.error('Error starting session:', error);
-    res.status(500).json({ error: 'Failed to start session tracking' });
-  }
-});
-
-// Track form submission - THIS IS THE KEY METRIC
-app.post('/api/track-form-submission', async (req, res) => {
-  try {
-    const { sessionId, userInput, selectedKPI, customKPI } = req.body;
-    
-    if (currentSessions[sessionId]) {
-      const session = currentSessions[sessionId];
-      const submissionTime = new Date();
-      const sessionStartTime = new Date(session.sessionStart);
-      
-      // Format times in EST
-      const estOptions = { 
-        timeZone: 'America/New_York', 
-        hour12: true, 
-        hour: 'numeric', 
-        minute: '2-digit', 
-        second: '2-digit' 
-      };
-      const estDateOptions = { 
-        timeZone: 'America/New_York',
-        year: 'numeric', 
-        month: '2-digit', 
-        day: '2-digit' 
-      };
-      
-      // Create the usage record - ONLY ONE per form submission
-      const usageRecord = {
-        sessionId: sessionId,
-        date: submissionTime.toLocaleDateString('en-US', estDateOptions),
-        userName: session.userName,
-        selectedKPI: selectedKPI || 'None',
-        customKPI: customKPI || '',
-        promptText: userInput.substring(0, 200), // First 200 characters
-        formSubmissionTime: submissionTime.toLocaleTimeString('en-US', estOptions),
-        sessionEnd: 'In Progress',
-        sessionDuration: 'In Progress',
-        isActive: true
-      };
-      
-      // Check if we already recorded this form submission
-      const existingIndex = usageData.findIndex(record => record.sessionId === sessionId);
-      
-      if (existingIndex >= 0) {
-        // Update existing record
-        usageData[existingIndex] = usageRecord;
-      } else {
-        // Add new record
-        usageData.push(usageRecord);
-      }
-      
-      // Update session
-      currentSessions[sessionId].lastActivity = submissionTime.toISOString();
-      currentSessions[sessionId].formSubmitted = true;
-      
-      // Save to GitHub
-      saveUsageData().catch(error => {
-        console.error('Background save to GitHub failed:', error);
-      });
-      
-      console.log(`📊 Form submission tracked for ${session.userName}: "${userInput.substring(0, 50)}..."`);
-    }
-    
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Error tracking form submission:', error);
+    console.error('❌ BACKEND: Error tracking form submission:', error);
     res.status(500).json({ error: 'Failed to track form submission' });
   }
 });
@@ -451,8 +390,8 @@ app.post('/api/end-session', async (req, res) => {
       const recordIndex = usageData.findIndex(record => record.sessionId === sessionId);
       
       if (recordIndex >= 0) {
-        const formSubmissionTime = new Date(usageData[recordIndex].formSubmissionTime);
-        const actualSessionDuration = Math.round((sessionEndTime - formSubmissionTime) / 1000); // seconds
+        const sessionStartTime = new Date(session.sessionStart);
+        const actualSessionDuration = Math.round((sessionEndTime - sessionStartTime) / 1000); // seconds
         
         const estOptions = { 
           timeZone: 'America/New_York', 
@@ -469,7 +408,6 @@ app.post('/api/end-session', async (req, res) => {
         
         // Clean up temporary fields
         delete usageData[recordIndex].sessionId;
-        delete usageData[recordIndex].isActive;
         
         console.log(`✅ Session completed for ${session.userName}: ${actualSessionDuration} seconds`);
         
@@ -984,7 +922,7 @@ const KPI_CONTEXT = {
   }
 };
 
-// Main idea generation endpoint - UPDATED TO TRACK FORM SUBMISSION
+// FIXED: Main idea generation endpoint with proper form tracking
 app.post('/api/generate-ideas', upload.array('files'), async (req, res) => {
   try {
     const { userInput, selectedKPI, customKPI } = req.body;

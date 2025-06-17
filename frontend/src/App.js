@@ -65,17 +65,24 @@ const createSession = async () => {
     
     setSessionId(newSessionId);
     setSessionStarted(true);
+    console.log('✅ FRONTEND: Session created:', newSessionId);
   } catch (error) {
-    console.error('Error creating session:', error);
+    console.error('❌ FRONTEND: Error creating session:', error);
   }
 };
 
-// NEW: Track form submission - THIS IS THE KEY METRIC
+// FIXED: Form submission tracking function
 const trackFormSubmission = async () => {
-  if (!sessionId) return;
+  if (!sessionId) {
+    console.log('❌ FRONTEND: Cannot track form submission - no sessionId');
+    return;
+  }
+  
+  console.log('🔍 FRONTEND: Tracking form submission for sessionId:', sessionId);
+  console.log('🔍 FRONTEND: User input:', userInput?.substring(0, 50));
   
   try {
-    await fetch('https://claude-web-app.onrender.com/api/track-form-submission', {
+    const response = await fetch('https://claude-web-app.onrender.com/api/track-form-submission', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -85,8 +92,14 @@ const trackFormSubmission = async () => {
         customKPI: customKPI
       })
     });
+    
+    if (response.ok) {
+      console.log('✅ FRONTEND: Form submission tracked successfully');
+    } else {
+      console.log('❌ FRONTEND: Form submission tracking failed:', response.status);
+    }
   } catch (error) {
-    console.error('Error tracking form submission:', error);
+    console.error('❌ FRONTEND: Error tracking form submission:', error);
   }
 };
 
@@ -95,13 +108,20 @@ const endSession = useCallback(async () => {
   if (!sessionId) return;
   
   try {
-    await fetch('https://claude-web-app.onrender.com/api/end-session', {
+    console.log('🔍 FRONTEND: Ending session:', sessionId);
+    const response = await fetch('https://claude-web-app.onrender.com/api/end-session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionId: sessionId })
     });
+    
+    if (response.ok) {
+      console.log('✅ FRONTEND: Session ended successfully');
+    } else {
+      console.log('❌ FRONTEND: Session end failed:', response.status);
+    }
   } catch (error) {
-    console.error('Error ending session:', error);
+    console.error('❌ FRONTEND: Error ending session:', error);
   }
 }, [sessionId]);
 
@@ -513,7 +533,7 @@ const fetchImplementationSteps = async (ideaId) => {
   }
 };
 
-// UPDATED: Generate ideas function with form submission tracking
+// FIXED: Generate ideas function with proper form submission tracking
 const handleGenerateIdeas = async (isRetry = false) => {
   if (!userInput.trim()) return;
   
@@ -534,15 +554,11 @@ const handleGenerateIdeas = async (isRetry = false) => {
     uploadedFiles.forEach((file, index) => {
       formData.append('files', file);
     });
-
-    // TRACK FORM SUBMISSION - THIS IS THE KEY METRIC
-    if (sessionId) {
-      await trackFormSubmission();
-    }
-
+    
+    // FIXED: Added the missing fetch call
     const response = await fetch('https://claude-web-app.onrender.com/api/generate-ideas', {
       method: 'POST',
-      body: formData,
+      body: formData
     });
     
     if (!response.ok) {
@@ -563,6 +579,11 @@ const handleGenerateIdeas = async (isRetry = false) => {
     setIdeas(formattedIdeas);
     setCurrentScreen('output');
     setRetryCount(0);
+    
+    // FIXED: Track form submission AFTER successful idea generation
+    if (sessionId) {
+      await trackFormSubmission();
+    }
     
     // Clear states when generating new ideas
     setRefinementInputs({});
