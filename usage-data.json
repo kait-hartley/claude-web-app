@@ -72,5 +72,36 @@
     "formSubmissionTime": "9:00:17 AM",
     "sessionEnd": "9:10:58 AM",
     "sessionDuration": 600
+  },
+  {
+    "date": "06/17/2025",
+    "userName": "Kaitlyn Hartley",
+    "selectedKPI": "deflection_rate",
+    "customKPI": "",
+    "promptText": "(TEST) Increasing deflection on TOFU, low intent popular pages\n",
+    "formSubmissionTime": "10:08:50 AM",
+    "sessionEnd": "10:09:20 AM",
+    "sessionDuration": 54,
+    "isActive": false
+  },
+  {
+    "date": "06/17/2025",
+    "userName": "Julia Brummer",
+    "selectedKPI": "deflection_rate",
+    "customKPI": "",
+    "promptText": "(TEST) Increasing deflection on TOFU, low intent popular pages in DACH region",
+    "formSubmissionTime": "10:10:03 AM",
+    "sessionEnd": "10:10:21 AM",
+    "sessionDuration": 19
+  },
+  {
+    "date": "06/17/2025",
+    "userName": "Kaitlyn Hartley",
+    "selectedKPI": "deflection_rate",
+    "customKPI": "",
+    "promptText": "(TEST) Increasing deflection on TOFU, low intent popular pages\n",
+    "formSubmissionTime": "10:12:18 AM",
+    "sessionEnd": "10:12:28 AM",
+    "sessionDuration": 10
   }
 ]
