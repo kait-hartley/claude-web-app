@@ -105,15 +105,14 @@
     "sessionDuration": 10
   },
   {
-    "sessionId": "17501761064333o3df37c7",
     "date": "06/17/2025",
     "userName": "Kaitlyn Hartley",
     "selectedKPI": "csat",
     "customKPI": "",
     "promptText": "Increasing CSAT scores while decreasing detractor comments across all global chats\n",
     "formSubmissionTime": "12:02:02 PM",
-    "sessionEnd": "In Progress",
-    "sessionDuration": "In Progress",
-    "isActive": true
+    "sessionEnd": "12:08:09 PM",
+    "sessionDuration": 383,
+    "isActive": false
   }
 ]
