@@ -85,15 +85,13 @@
     "isActive": false
   },
   {
-    "sessionId": "17501693789164472zuq9j",
     "date": "06/17/2025",
     "userName": "Julia Brummer",
     "selectedKPI": "deflection_rate",
     "customKPI": "",
     "promptText": "(TEST) Increasing deflection on TOFU, low intent popular pages in DACH region",
     "formSubmissionTime": "10:10:03 AM",
-    "sessionEnd": "In Progress",
-    "sessionDuration": "In Progress",
-    "isActive": true
+    "sessionEnd": "10:10:21 AM",
+    "sessionDuration": 19
   }
 ]
