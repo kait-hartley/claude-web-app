@@ -136,15 +136,13 @@
     "sessionDuration": 58
   },
   {
-    "sessionId": "1750188013031ybk6aiu0x",
     "date": "06/17/2025",
     "userName": "Kaitlyn Hartley",
     "selectedKPI": "deflection_rate",
     "customKPI": "",
     "promptText": "Increasing deflection for all low intent TOFU pages",
     "formSubmissionTime": "3:20:28 PM",
-    "sessionEnd": "In Progress",
-    "sessionDuration": "In Progress",
-    "isActive": true
+    "sessionEnd": "3:23:06 PM",
+    "sessionDuration": 159
   }
 ]
