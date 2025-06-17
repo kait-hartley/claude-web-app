@@ -126,5 +126,17 @@
     "sessionEnd": "In Progress",
     "sessionDuration": "In Progress",
     "isActive": true
+  },
+  {
+    "sessionId": "175018693583201u7q743e",
+    "date": "06/17/2025",
+    "userName": "Kaitlyn Hartley",
+    "selectedKPI": "csat",
+    "customKPI": "",
+    "promptText": "Improving CSAT scores by reducing common detractor comments after chats",
+    "formSubmissionTime": "3:02:30 PM",
+    "sessionEnd": "In Progress",
+    "sessionDuration": "In Progress",
+    "isActive": true
   }
 ]
