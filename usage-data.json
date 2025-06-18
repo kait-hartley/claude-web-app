@@ -154,5 +154,17 @@
     "formSubmissionTime": "4:14:41 PM",
     "sessionEnd": "4:14:50 PM",
     "sessionDuration": 9
+  },
+  {
+    "sessionId": "1750257120547v0isghb5p",
+    "date": "06/18/2025",
+    "userName": "Kaitlyn Hartley",
+    "selectedKPI": "engagement_rate",
+    "customKPI": "",
+    "promptText": "Increasing engagement rate on highest traffic pages",
+    "formSubmissionTime": "10:32:16 AM",
+    "sessionEnd": "In Progress",
+    "sessionDuration": "In Progress",
+    "isActive": true
   }
 ]
