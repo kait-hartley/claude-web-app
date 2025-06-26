@@ -197,5 +197,17 @@
     "sessionEnd": "10:08:45 AM",
     "sessionDuration": 95,
     "isActive": false
+  },
+  {
+    "sessionId": "1750947363891ye1bimxow",
+    "date": "06/26/2025",
+    "userName": "Kaitlyn Hartley",
+    "selectedKPI": "bamic",
+    "customKPI": "",
+    "promptText": "Case study visitors show 3x higher purchase intent but only 8% book demos despite 23% chat engagement. They ask ROI/timeline questions then leave. Our BAMIC is 4.2% but ISCs achieve 18% manually. Need",
+    "formSubmissionTime": "10:16:21 AM",
+    "sessionEnd": "In Progress",
+    "sessionDuration": "In Progress",
+    "isActive": true
   }
 ]
