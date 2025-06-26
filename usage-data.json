@@ -188,15 +188,14 @@
     "isActive": true
   },
   {
-    "sessionId": "1750946829973dw3oocahz",
     "date": "06/26/2025",
     "userName": "Kaitlyn Hartley",
     "selectedKPI": "handoff_rate",
     "customKPI": "",
     "promptText": "Our ISCs spend 40% of their time on low-ASP prospects under $500/month, while high-intent enterprise visitors (50+ employees) on our pricing page get generic bot responses and leave. Current pricing p",
     "formSubmissionTime": "10:07:26 AM",
-    "sessionEnd": "In Progress",
-    "sessionDuration": "In Progress",
-    "isActive": true
+    "sessionEnd": "10:08:45 AM",
+    "sessionDuration": 95,
+    "isActive": false
   }
 ]
