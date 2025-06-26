@@ -176,16 +176,15 @@
     "sessionDuration": 61
   },
   {
-    "sessionId": "1750702982829m0enqto3q",
     "date": "06/23/2025",
     "userName": "Kaitlyn Hartley",
     "selectedKPI": "deflection_rate",
     "customKPI": "",
     "promptText": "Increasing deflection rate on low intent, high traffic pages\n",
     "formSubmissionTime": "2:23:22 PM",
-    "sessionEnd": "In Progress",
-    "sessionDuration": "In Progress",
-    "isActive": true
+    "sessionEnd": "10:24:09 AM",
+    "sessionDuration": 900,
+    "isActive": false
   },
   {
     "date": "06/26/2025",
