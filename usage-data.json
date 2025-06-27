@@ -220,5 +220,17 @@
     "sessionEnd": "In Progress",
     "sessionDuration": "In Progress",
     "isActive": true
+  },
+  {
+    "sessionId": "17510491404089xavemgv3",
+    "date": "06/27/2025",
+    "userName": "Kaitlyn Hartley",
+    "selectedKPI": "genai_ql",
+    "customKPI": "",
+    "promptText": "Increasing GenAI Ql's on low intent pages by 30% this quarter",
+    "formSubmissionTime": "2:32:35 PM",
+    "sessionEnd": "In Progress",
+    "sessionDuration": "In Progress",
+    "isActive": true
   }
 ]
