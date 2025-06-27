@@ -208,5 +208,17 @@
     "sessionEnd": "In Progress",
     "sessionDuration": "In Progress",
     "isActive": true
+  },
+  {
+    "sessionId": "1751036782182txmm7a4qo",
+    "date": "06/27/2025",
+    "userName": "Kaitlyn Hartley",
+    "selectedKPI": "deflection_rate",
+    "customKPI": "",
+    "promptText": "Ingenious way to increase deflection rate on low intent pages by 50%",
+    "formSubmissionTime": "11:06:37 AM",
+    "sessionEnd": "In Progress",
+    "sessionDuration": "In Progress",
+    "isActive": true
   }
 ]
