@@ -232,5 +232,17 @@
     "sessionEnd": "In Progress",
     "sessionDuration": "In Progress",
     "isActive": true
+  },
+  {
+    "sessionId": "1751295598807akcsep0kc",
+    "date": "06/30/2025",
+    "userName": "Kaitlyn Hartley",
+    "selectedKPI": "mrr",
+    "customKPI": "",
+    "promptText": "Increase GenAI QL's and also decrease the volume of ghosted chats",
+    "formSubmissionTime": "11:00:15 AM",
+    "sessionEnd": "In Progress",
+    "sessionDuration": "In Progress",
+    "isActive": true
   }
 ]
