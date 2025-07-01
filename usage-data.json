@@ -198,63 +198,53 @@
     "isActive": false
   },
   {
-    "sessionId": "1750947363891ye1bimxow",
     "date": "06/26/2025",
     "userName": "Kaitlyn Hartley",
     "selectedKPI": "bamic",
     "customKPI": "",
     "promptText": "Case study visitors show 3x higher purchase intent but only 8% book demos despite 23% chat engagement. They ask ROI/timeline questions then leave. Our BAMIC is 4.2% but ISCs achieve 18% manually. Need",
     "formSubmissionTime": "10:16:21 AM",
-    "sessionEnd": "In Progress",
-    "sessionDuration": "In Progress",
-    "isActive": true
+    "sessionEnd": "12:33:27 PM",
+    "sessionDuration": 600
   },
   {
-    "sessionId": "1751036782182txmm7a4qo",
     "date": "06/27/2025",
     "userName": "Kaitlyn Hartley",
     "selectedKPI": "deflection_rate",
     "customKPI": "",
     "promptText": "Ingenious way to increase deflection rate on low intent pages by 50%",
     "formSubmissionTime": "11:06:37 AM",
-    "sessionEnd": "In Progress",
-    "sessionDuration": "In Progress",
-    "isActive": true
+    "sessionEnd": "12:33:27 PM",
+    "sessionDuration": 600
   },
   {
-    "sessionId": "17510491404089xavemgv3",
     "date": "06/27/2025",
     "userName": "Kaitlyn Hartley",
     "selectedKPI": "genai_ql",
     "customKPI": "",
     "promptText": "Increasing GenAI Ql's on low intent pages by 30% this quarter",
     "formSubmissionTime": "2:32:35 PM",
-    "sessionEnd": "In Progress",
-    "sessionDuration": "In Progress",
-    "isActive": true
+    "sessionEnd": "12:33:27 PM",
+    "sessionDuration": 600
   },
   {
-    "sessionId": "1751295598807akcsep0kc",
     "date": "06/30/2025",
     "userName": "Kaitlyn Hartley",
     "selectedKPI": "mrr",
     "customKPI": "",
     "promptText": "Increase GenAI QL's and also decrease the volume of ghosted chats",
     "formSubmissionTime": "11:00:15 AM",
-    "sessionEnd": "In Progress",
-    "sessionDuration": "In Progress",
-    "isActive": true
+    "sessionEnd": "12:33:27 PM",
+    "sessionDuration": 600
   },
   {
-    "sessionId": "1751387552891e76ai8v2w",
     "date": "07/01/2025",
     "userName": "Kaitlyn Hartley",
     "selectedKPI": "csat",
     "customKPI": "",
     "promptText": "Increasing CSAT scores and reducing deflector comments\n",
     "formSubmissionTime": "12:33:22 PM",
-    "sessionEnd": "In Progress",
-    "sessionDuration": "In Progress",
-    "isActive": true
+    "sessionEnd": "12:33:27 PM",
+    "sessionDuration": 4
   }
 ]
