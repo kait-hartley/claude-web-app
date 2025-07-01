@@ -258,5 +258,17 @@
     "sessionEnd": "In Progress",
     "sessionDuration": "In Progress",
     "isActive": true
+  },
+  {
+    "sessionId": "1751389585441u7d5unje0",
+    "date": "07/01/2025",
+    "userName": "becca Stamp",
+    "selectedKPI": "csat",
+    "customKPI": "",
+    "promptText": "increasing CSAT",
+    "formSubmissionTime": "1:06:41 PM",
+    "sessionEnd": "In Progress",
+    "sessionDuration": "In Progress",
+    "isActive": true
   }
 ]
