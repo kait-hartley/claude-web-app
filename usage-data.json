@@ -246,5 +246,17 @@
     "formSubmissionTime": "12:33:22 PM",
     "sessionEnd": "12:33:27 PM",
     "sessionDuration": 4
+  },
+  {
+    "sessionId": "17513895700814dw5zjgmp",
+    "date": "07/01/2025",
+    "userName": "kaitlyn Hartley",
+    "selectedKPI": "csat",
+    "customKPI": "",
+    "promptText": "Increasing csat",
+    "formSubmissionTime": "1:06:28 PM",
+    "sessionEnd": "In Progress",
+    "sessionDuration": "In Progress",
+    "isActive": true
   }
 ]
