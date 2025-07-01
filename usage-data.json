@@ -244,5 +244,17 @@
     "sessionEnd": "In Progress",
     "sessionDuration": "In Progress",
     "isActive": true
+  },
+  {
+    "sessionId": "1751387552891e76ai8v2w",
+    "date": "07/01/2025",
+    "userName": "Kaitlyn Hartley",
+    "selectedKPI": "csat",
+    "customKPI": "",
+    "promptText": "Increasing CSAT scores and reducing deflector comments\n",
+    "formSubmissionTime": "12:33:22 PM",
+    "sessionEnd": "In Progress",
+    "sessionDuration": "In Progress",
+    "isActive": true
   }
 ]
