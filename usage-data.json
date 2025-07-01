@@ -248,27 +248,23 @@
     "sessionDuration": 4
   },
   {
-    "sessionId": "17513895700814dw5zjgmp",
     "date": "07/01/2025",
     "userName": "kaitlyn Hartley",
     "selectedKPI": "csat",
     "customKPI": "",
     "promptText": "Increasing csat",
     "formSubmissionTime": "1:06:28 PM",
-    "sessionEnd": "In Progress",
-    "sessionDuration": "In Progress",
-    "isActive": true
+    "sessionEnd": "1:08:50 PM",
+    "sessionDuration": 143
   },
   {
-    "sessionId": "1751389585441u7d5unje0",
     "date": "07/01/2025",
     "userName": "becca Stamp",
     "selectedKPI": "csat",
     "customKPI": "",
     "promptText": "increasing CSAT",
     "formSubmissionTime": "1:06:41 PM",
-    "sessionEnd": "In Progress",
-    "sessionDuration": "In Progress",
-    "isActive": true
+    "sessionEnd": "1:08:50 PM",
+    "sessionDuration": 129
   }
 ]
