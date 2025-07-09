@@ -103,5 +103,168 @@
     "formSubmissionTime": "10:12:18 AM",
     "sessionEnd": "10:12:28 AM",
     "sessionDuration": 10
+  },
+  {
+    "date": "06/17/2025",
+    "userName": "Kaitlyn Hartley",
+    "selectedKPI": "csat",
+    "customKPI": "",
+    "promptText": "Increasing CSAT scores while decreasing detractor comments across all global chats\n",
+    "formSubmissionTime": "12:02:02 PM",
+    "sessionEnd": "12:08:09 PM",
+    "sessionDuration": 383,
+    "isActive": false
+  },
+  {
+    "date": "06/17/2025",
+    "userName": "Kaitlyn Hartley",
+    "selectedKPI": "csat",
+    "customKPI": "",
+    "promptText": "Increasing CSAT scores and reducing detractor comments after chats",
+    "formSubmissionTime": "12:12:56 PM",
+    "sessionEnd": "3:03:28 PM",
+    "sessionDuration": 600
+  },
+  {
+    "date": "06/17/2025",
+    "userName": "Kaitlyn Hartley",
+    "selectedKPI": "csat",
+    "customKPI": "",
+    "promptText": "Improving CSAT scores by reducing common detractor comments after chats",
+    "formSubmissionTime": "3:02:30 PM",
+    "sessionEnd": "3:03:28 PM",
+    "sessionDuration": 58
+  },
+  {
+    "date": "06/17/2025",
+    "userName": "Kaitlyn Hartley",
+    "selectedKPI": "deflection_rate",
+    "customKPI": "",
+    "promptText": "Increasing deflection for all low intent TOFU pages",
+    "formSubmissionTime": "3:20:28 PM",
+    "sessionEnd": "3:23:06 PM",
+    "sessionDuration": 159
+  },
+  {
+    "date": "06/17/2025",
+    "userName": "Kaitlyn Hartley",
+    "selectedKPI": "deflection_rate",
+    "customKPI": "",
+    "promptText": "(TEST, TEST) Improving deflection rate",
+    "formSubmissionTime": "4:14:41 PM",
+    "sessionEnd": "4:14:50 PM",
+    "sessionDuration": 9
+  },
+  {
+    "date": "06/18/2025",
+    "userName": "Kaitlyn Hartley",
+    "selectedKPI": "engagement_rate",
+    "customKPI": "",
+    "promptText": "Increasing engagement rate on highest traffic pages",
+    "formSubmissionTime": "10:32:16 AM",
+    "sessionEnd": "10:32:35 AM",
+    "sessionDuration": 19
+  },
+  {
+    "date": "06/23/2025",
+    "userName": "Kaitlyn Hartley",
+    "selectedKPI": "deflection_rate",
+    "customKPI": "",
+    "promptText": "Improving deflection rate on low intent high traffic pages",
+    "formSubmissionTime": "10:37:33 AM",
+    "sessionEnd": "10:38:33 AM",
+    "sessionDuration": 61
+  },
+  {
+    "date": "06/23/2025",
+    "userName": "Kaitlyn Hartley",
+    "selectedKPI": "deflection_rate",
+    "customKPI": "",
+    "promptText": "Increasing deflection rate on low intent, high traffic pages\n",
+    "formSubmissionTime": "2:23:22 PM",
+    "sessionEnd": "10:24:09 AM",
+    "sessionDuration": 900,
+    "isActive": false
+  },
+  {
+    "date": "06/26/2025",
+    "userName": "Kaitlyn Hartley",
+    "selectedKPI": "handoff_rate",
+    "customKPI": "",
+    "promptText": "Our ISCs spend 40% of their time on low-ASP prospects under $500/month, while high-intent enterprise visitors (50+ employees) on our pricing page get generic bot responses and leave. Current pricing p",
+    "formSubmissionTime": "10:07:26 AM",
+    "sessionEnd": "10:08:45 AM",
+    "sessionDuration": 95,
+    "isActive": false
+  },
+  {
+    "date": "06/26/2025",
+    "userName": "Kaitlyn Hartley",
+    "selectedKPI": "bamic",
+    "customKPI": "",
+    "promptText": "Case study visitors show 3x higher purchase intent but only 8% book demos despite 23% chat engagement. They ask ROI/timeline questions then leave. Our BAMIC is 4.2% but ISCs achieve 18% manually. Need",
+    "formSubmissionTime": "10:16:21 AM",
+    "sessionEnd": "12:33:27 PM",
+    "sessionDuration": 600
+  },
+  {
+    "date": "06/27/2025",
+    "userName": "Kaitlyn Hartley",
+    "selectedKPI": "deflection_rate",
+    "customKPI": "",
+    "promptText": "Ingenious way to increase deflection rate on low intent pages by 50%",
+    "formSubmissionTime": "11:06:37 AM",
+    "sessionEnd": "12:33:27 PM",
+    "sessionDuration": 600
+  },
+  {
+    "date": "06/27/2025",
+    "userName": "Kaitlyn Hartley",
+    "selectedKPI": "genai_ql",
+    "customKPI": "",
+    "promptText": "Increasing GenAI Ql's on low intent pages by 30% this quarter",
+    "formSubmissionTime": "2:32:35 PM",
+    "sessionEnd": "12:33:27 PM",
+    "sessionDuration": 600
+  },
+  {
+    "date": "06/30/2025",
+    "userName": "Kaitlyn Hartley",
+    "selectedKPI": "mrr",
+    "customKPI": "",
+    "promptText": "Increase GenAI QL's and also decrease the volume of ghosted chats",
+    "formSubmissionTime": "11:00:15 AM",
+    "sessionEnd": "12:33:27 PM",
+    "sessionDuration": 600
+  },
+  {
+    "date": "07/01/2025",
+    "userName": "Kaitlyn Hartley",
+    "selectedKPI": "csat",
+    "customKPI": "",
+    "promptText": "Increasing CSAT scores and reducing deflector comments\n",
+    "formSubmissionTime": "12:33:22 PM",
+    "sessionEnd": "12:33:27 PM",
+    "sessionDuration": 4
+  },
+  {
+    "date": "07/01/2025",
+    "userName": "kaitlyn Hartley",
+    "selectedKPI": "csat",
+    "customKPI": "",
+    "promptText": "Increasing csat",
+    "formSubmissionTime": "1:06:28 PM",
+    "sessionEnd": "1:08:50 PM",
+    "sessionDuration": 143
+  },
+  {
+    "date": "07/01/2025",
+    "userName": "becca Stamp",
+    "selectedKPI": "csat",
+    "customKPI": "",
+    "promptText": "increasing CSAT",
+    "formSubmissionTime": "1:06:41 PM",
+    "sessionEnd": "1:08:50 PM",
+    "sessionDuration": 129
   }
 ]
