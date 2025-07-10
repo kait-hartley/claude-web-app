@@ -50,7 +50,7 @@ Format your response as a structured experiment proposal with:
 6. Potential Risks/Considerations`;
 
     const message = await anthropic.messages.create({
-      model: 'claude-3-sonnet-20240229',
+      model: 'claude-3-sonnet-20241022',
       max_tokens: 1000,
       messages: [
         {
